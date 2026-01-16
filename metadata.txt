@@ -42,3 +42,4 @@ experimental=False
 deprecated=False
 server=False
 hasProcessingProvider=no
+license=GPLv3
