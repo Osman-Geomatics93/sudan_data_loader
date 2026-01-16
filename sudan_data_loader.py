@@ -19,6 +19,7 @@ Features:
 - Sketching/drawing tools
 - Processing tools (Clip, Buffer, Dissolve)
 - Data validation checker
+- HDX Humanitarian Data integration
 """
 
 import os
@@ -48,6 +49,7 @@ from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.layer_selection_dialog import LayerSelectionDialog
 from .dialogs.query_builder_dialog import QueryBuilderDialog
 from .dialogs.export_dialog import ExportDialog
+from .dialogs.welcome_wizard import WelcomeWizard
 
 # Import widgets
 from .widgets.data_info_panel import DataInfoPanel
@@ -66,6 +68,9 @@ from .reports.report_generator import ReportDialog
 
 # Import validation
 from .validation.data_validator import ValidationDialog
+
+# Import HDX integration
+from .hdx.hdx_browser import HDXBrowserDialog
 
 
 class SudanDataLoader:
@@ -218,7 +223,12 @@ class SudanDataLoader:
         self._create_action('validate', 'Validate Data...', self.show_validation_dialog)
         self.menu.addSeparator()
 
-        # === Settings ===
+        # === HDX Humanitarian Data ===
+        self._create_action('hdx_browser', 'HDX Humanitarian Data...', self.show_hdx_browser)
+        self.menu.addSeparator()
+
+        # === Help & Settings ===
+        self._create_action('welcome_wizard', 'Welcome Wizard...', self.show_welcome_wizard)
         self._create_action('settings', 'Settings...', self.show_settings)
 
         # Create toolbar
@@ -237,6 +247,15 @@ class SudanDataLoader:
 
         # Initialize sketching toolbar (hidden by default)
         self.sketching_toolbar = SketchingToolbar(self.iface)
+
+        # Show welcome wizard on first run (use QTimer to show after QGIS fully loads)
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(1000, self._check_first_run)
+
+    def _check_first_run(self):
+        """Check if this is first run and show welcome wizard."""
+        if WelcomeWizard.should_show(self.settings_manager):
+            self.show_welcome_wizard()
 
     def _create_action(self, name, text, callback, parent=None):
         """Create and register an action."""
@@ -373,6 +392,11 @@ class SudanDataLoader:
         dialog = SettingsDialog(self.settings_manager, self.iface.mainWindow())
         dialog.exec_()
 
+    def show_welcome_wizard(self):
+        """Show the welcome wizard."""
+        wizard = WelcomeWizard(self, self.iface.mainWindow())
+        wizard.exec_()
+
     def show_layer_selection(self):
         """Show the layer selection dialog."""
         dialog = LayerSelectionDialog(self.settings_manager, self.iface.mainWindow())
@@ -405,6 +429,41 @@ class SudanDataLoader:
         """Show the data validation dialog."""
         dialog = ValidationDialog(self.iface, self.iface.mainWindow())
         dialog.exec_()
+
+    def show_hdx_browser(self):
+        """Show the HDX humanitarian data browser dialog."""
+        dialog = HDXBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+        # Add any pending layers after dialog closes (prevents QGIS crash)
+        pending = dialog.get_pending_layers()
+        if pending:
+            added = []
+            failed = []
+            for layer_info in pending:
+                success, result = dialog.add_layer_to_map(
+                    layer_info['file_path'],
+                    layer_info['resource']
+                )
+                if success:
+                    added.append(result)
+                else:
+                    failed.append(result)
+
+            # Show summary
+            if added:
+                self.iface.mapCanvas().refresh()
+                msg = f"Added {len(added)} layer(s) to the map:\n"
+                msg += "\n".join(f"  - {name}" for name in added)
+                if failed:
+                    msg += f"\n\nFailed to add {len(failed)} layer(s)."
+                QMessageBox.information(self.iface.mainWindow(), 'HDX Layers Added', msg)
+            elif failed:
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    'Layer Load Failed',
+                    f"Failed to load {len(failed)} layer(s):\n" + "\n".join(failed)
+                )
 
     # ============ Data Loading Methods ============
 

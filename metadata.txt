@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.0.0
+version=2.2.0
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
@@ -29,6 +29,12 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
     - Processing Tools (Clip by State, Buffer, Dissolve, Intersection)
     - Data Validation Checker (Geometry, Topology, Attributes)
 
+    === Humanitarian Data ===
+    - HDX (Humanitarian Data Exchange) Integration
+    - Browse and download Sudan humanitarian datasets
+    - Health facilities, roads, education, conflict data
+    - Direct layer loading from HDX
+
     Data layers included:
     - Admin 0: Country boundary
     - Admin 1: States (18)
@@ -39,7 +45,21 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.0.0 - Major Feature Release
+changelog=2.2.0 - Welcome Wizard & UX Improvements
+    - Welcome Wizard for first-time users with guided setup
+    - HDX category filtering - filter by Health, Education, etc.
+    - Real-time text search filtering for datasets
+    - Clear filters button
+    - Improved layer loading stability
+
+    2.1.0 - HDX Humanitarian Data Integration
+    - HDX browser dialog for Sudan humanitarian datasets
+    - Featured datasets: Health, Education, Roads, Conflict, POIs
+    - Search HDX for additional datasets
+    - Download and auto-load layers to QGIS
+    - Support for GeoJSON, Shapefile, GeoPackage, KML, CSV
+
+    2.0.0 - Major Feature Release
     === New Features ===
     - Settings dialog with persistent configuration
     - Layer selection dialog with remember option
@@ -66,7 +86,7 @@ changelog=2.0.0 - Major Feature Release
     1.0.1 - Bug fixes and stability improvements
     1.0.0 - Initial release
 
-tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching
+tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching,hdx,humanitarian,health,education
 
 homepage=https://github.com/Osman-Geomatics93/sudan_data_loader
 category=Vector
