@@ -1,15 +1,50 @@
 # Sudan Data Loader - QGIS Plugin
 
-A QGIS plugin for loading Sudan administrative boundary data with automatic updates from GitHub releases.
+A comprehensive QGIS plugin for loading, visualizing, and analyzing Sudan administrative boundary data with integrated humanitarian and conflict data sources.
+
+## Version 2.3.4
 
 ## Features
 
-- **Load Administrative Boundaries**: Country (Admin 0), States (Admin 1), Localities (Admin 2)
+### Data Loading
+- **Administrative Boundaries**: Country (Admin 0), States (Admin 1), Localities (Admin 2)
 - **Additional Layers**: Administrative lines and points
-- **Automatic Styling**: QML styles applied automatically to each layer
+- **Automatic Styling**: QML styles applied automatically
 - **Download/Update**: Fetch latest data from GitHub releases
-- **Secure Downloads**: SHA256 hash verification for data integrity
-- **Offline Support**: Bundled data included for offline use
+- **Layer Selection**: Choose which layers to load
+
+### Quick Tools
+- **Quick Labels**: One-click labeling (English, Arabic, P-Codes)
+- **Style Presets**: Default, Satellite-Friendly, Grayscale, Humanitarian themes
+- **Basemaps**: OpenStreetMap, ESRI Satellite, Humanitarian OSM, CartoDB
+
+### Panels
+- **Search Panel**: Find features by name (English/Arabic) with autocomplete
+- **Bookmarks Panel**: Quick navigation to all 18 states + custom bookmarks
+- **Statistics Panel**: Area calculations, feature counts, export to CSV
+- **Data Info Panel**: Layer information, CRS, extent
+
+### Analysis Tools
+- **Query Builder**: Visual attribute query interface
+- **Export Features**: GeoPackage, Shapefile, GeoJSON, KML, CSV, DXF
+- **Processing Tools**: Clip by State, Buffer, Dissolve, Intersection
+- **Data Validation**: Geometry, topology, and attribute checks
+- **Report Generation**: HTML/PDF reports
+
+### Drawing Tools
+- **Sketching Toolbar**: Draw points, lines, polygons, text annotations
+
+### External Data Sources
+- **HDX Integration**: Browse and download humanitarian datasets from HDX
+  - Health facilities, education, roads, conflict data
+  - Direct layer loading to QGIS
+
+- **ACLED Integration**: Armed Conflict Location & Event Data
+  - Real-time conflict tracking for Sudan
+  - Filter by date, event type, region
+  - Color-coded visualization by event type
+  - Statistics and event details
+  - *Note: Free accounts access data older than 12 months*
 
 ## Installation
 
@@ -21,97 +56,123 @@ A QGIS plugin for loading Sudan administrative boundary data with automatic upda
 
 ### Manual Installation
 1. Download the latest release from [Releases](https://github.com/Osman-Geomatics93/sudan_data_loader/releases)
-2. Extract to your QGIS plugins folder:
-   - **Windows**: `%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\`
-   - **Linux**: `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/`
-   - **macOS**: `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/`
-3. Restart QGIS
-4. Enable the plugin in **Plugins** > **Manage and Install Plugins**
+2. In QGIS: **Plugins** > **Manage and Install Plugins** > **Install from ZIP**
+3. Select the downloaded zip file
 
 ## Usage
 
-### Loading Data
-1. Click the **"Load Sudan Admin Data"** button in the toolbar
-2. Or go to **Vector** > **Sudan Data Downloader** > **Load Sudan Admin Data**
-3. All layers will be loaded and styled automatically
+### Menu Location
+All features are under: **Sudan Data Loader** menu
 
-### Updating Data
-1. Click the **"Download/Update Sudan Data"** button in the toolbar
-2. The plugin will check for updates from GitHub
-3. If an update is available, it will download and extract automatically
-4. Downloaded data is cached locally for future use
+### Loading Data
+1. **Sudan Data Loader** > **Load Sudan Data...** (select layers)
+2. Or **Load All Layers** to load everything
+
+### Settings
+**Sudan Data Loader** > **Settings...**
+- General: Server URL, auto-update
+- Layers: Default layers to load
+- Appearance: Style preset, panel visibility
+- API Keys: ACLED credentials
+
+### ACLED Conflict Data
+1. Register free at https://acleddata.com/
+2. Go to **Settings** > **API Keys** tab
+3. Enter your email and password
+4. Open **External Data Sources** > **ACLED Conflict Data...**
+5. Select date range (data older than 12 months for free accounts)
+6. Click **Fetch Conflict Data**
+7. Click **Add to Map**
+
+### HDX Humanitarian Data
+1. **External Data Sources** > **HDX Humanitarian Data...**
+2. Browse featured datasets or search
+3. Click **Download** then **Add to Map**
 
 ## Data Layers
 
-| Layer | Description | Style |
-|-------|-------------|-------|
-| Sudan Admin 0 - Country | National boundary | Yes |
-| Sudan Admin 1 - States | State boundaries | Yes |
-| Sudan Admin 2 - Localities | Locality boundaries | Yes |
-| Sudan Admin Lines | Administrative boundary lines | No |
-| Sudan Admin Points | Administrative points | No |
-
-## Data Storage
-
-- **Bundled Data**: Included with plugin installation
-- **Cached Data**: Downloaded to user's application data folder
-  - Windows: `%APPDATA%\<QGIS>\sudan_data_loader\`
-  - Linux: `~/.local/share/QGIS/QGIS3/sudan_data_loader/`
-  - macOS: `~/Library/Application Support/QGIS/QGIS3/sudan_data_loader/`
+| Layer | Description |
+|-------|-------------|
+| Sudan Admin 0 - Country | National boundary |
+| Sudan Admin 1 - States | 18 state boundaries |
+| Sudan Admin 2 - Localities | Locality boundaries |
+| Sudan Admin Lines | Boundary lines |
+| Sudan Admin Points | Administrative points |
 
 ## Requirements
 
 - QGIS 3.0 or higher
-- Internet connection (for download/update feature only)
+- Internet connection (for download/update, HDX, ACLED)
+- ACLED account for conflict data (free registration)
 
-## Technical Details
+## Changelog
 
-### Version Checking
-The plugin fetches version information from:
-```
-https://raw.githubusercontent.com/Osman-Geomatics93/sudan_data_loader/master/version.json
-```
+### v2.3.4 - ACLED API Working
+- Fix ACLED API endpoint URL
+- OAuth authentication working correctly
+- Debug logging for troubleshooting
 
-### Data Format
-- **Vector Data**: GeoPackage (.gpkg)
-- **Styles**: QGIS QML format (.qml)
+### v2.3.3 - ACLED Credentials Clarification
+- Clarify ACLED uses account email/password
 
-### Security Features
-- SHA256 hash verification for downloaded files
-- Zip-slip protection to prevent path traversal attacks
+### v2.3.2 - ACLED API Fix
+- Update to new OAuth-based API endpoint
+
+### v2.3.1 - ACLED API Key Settings
+- Add API Keys tab to Settings dialog
+
+### v2.3.0 - ACLED Conflict Data Integration
+- ACLED browser dialog
+- Filter by date, event type, region
+- Color-coded conflict visualization
+
+### v2.2.0 - Welcome Wizard & UX
+- Welcome wizard for first-time users
+- HDX category filtering
+- Real-time search filtering
+
+### v2.1.0 - HDX Integration
+- HDX humanitarian data browser
+- Featured Sudan datasets
+
+### v2.0.0 - Major Feature Release
+- Settings dialog
+- Layer selection
+- Quick labels (English/Arabic/P-Codes)
+- Style presets (4 themes)
+- Search panel with autocomplete
+- Bookmarks panel (18 states + custom)
+- Statistics panel
+- Query builder
+- Basemap integration (7 options)
+- Report generation (HTML/PDF)
+- Export dialog (6 formats)
+- Sketching toolbar
+- Processing tools
+- Data validation
+
+### v1.0.0 - Initial Release
+- Load Sudan administrative boundaries
+- Automatic styling
+- Download/Update from GitHub
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Contributions welcome! Submit a Pull Request.
 
 ## Issues
 
-Report bugs or request features at [Issues](https://github.com/Osman-Geomatics93/sudan_data_loader/issues)
+Report bugs at [Issues](https://github.com/Osman-Geomatics93/sudan_data_loader/issues)
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+GNU General Public License v3.0 - see [LICENSE](LICENSE)
 
 ## Author
 
 **Osman Ibrahim**
 - GitHub: [@Osman-Geomatics93](https://github.com/Osman-Geomatics93)
 - Email: osmangeomatics93@gmail.com
-
-## Changelog
-
-### v1.0.0 (Initial Release)
-- Load Sudan administrative boundaries from GeoPackages
-- Apply QML styles automatically
-- Download/Update feature with GitHub releases integration
-- SHA256 hash verification
-- Zip-slip protection for secure extraction
 
 ---
 
