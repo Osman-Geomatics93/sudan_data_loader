@@ -1,0 +1,29 @@
+[general]
+name=Sudan Data Downloader
+qgisMinimumVersion=3.0
+description=Loads Sudan administrative boundary data from GeoPackages and applies QML styles
+version=1.0.0
+author=Sudan GIS Team
+email=info@example.com
+
+about=This plugin loads Sudan administrative boundary data including:
+    - Country boundary (admin0)
+    - States (admin1)
+    - Localities (admin2)
+    - Administrative lines
+    - Administrative points
+
+    The data is loaded from GeoPackage files and styled with QML files.
+
+tracker=https://github.com/example/sudan-data-downloader/issues
+repository=https://github.com/example/sudan-data-downloader
+
+changelog=1.0.0 - Initial release
+
+tags=sudan,administrative,boundaries,geopackage,vector
+
+homepage=https://github.com/example/sudan-data-downloader
+category=Vector
+icon=
+experimental=False
+deprecated=False
