@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Sudan Data Downloader - Main Plugin Class
+Sudan Data Loader - Main Plugin Class
 
-This module contains the main plugin class that handles loading
-Sudan administrative boundary data from GeoPackages and applying styles.
+A comprehensive QGIS plugin for loading, visualizing, and analyzing
+Sudan administrative boundary data.
+
+Features:
+- Load administrative boundaries with automatic styling
+- Download/update data from GitHub releases
+- Quick labeling tools (English, Arabic, P-Codes)
+- Style preset switcher (Default, Satellite, Grayscale, Humanitarian)
+- Search and filter by admin name
+- Quick navigation bookmarks for all 18 states
+- Statistics panel with area calculations
+- Basemap integration (OSM, Satellite, Humanitarian)
+- Report generation (PDF/HTML)
+- Export features to multiple formats
+- Sketching/drawing tools
+- Processing tools (Clip, Buffer, Dissolve)
+- Data validation checker
 """
 
 import os
@@ -11,15 +26,50 @@ import json
 import zipfile
 import hashlib
 import tempfile
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QProgressDialog
+from qgis.PyQt.QtWidgets import (
+    QAction, QMessageBox, QProgressDialog, QMenu
+)
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QStandardPaths, QUrl, QEventLoop, Qt
-from qgis.core import QgsProject, QgsVectorLayer, QgsNetworkAccessManager, QgsBlockingNetworkRequest
+from qgis.core import (
+    QgsProject, QgsVectorLayer, QgsNetworkAccessManager,
+    QgsBlockingNetworkRequest
+)
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
+
+# Import core modules
+from .core.settings_manager import SettingsManager
+from .core.data_manager import DataManager
+from .core.labeling_utils import LabelingUtils
+from .core.style_manager import StyleManager
+
+# Import dialogs
+from .dialogs.settings_dialog import SettingsDialog
+from .dialogs.layer_selection_dialog import LayerSelectionDialog
+from .dialogs.query_builder_dialog import QueryBuilderDialog
+from .dialogs.export_dialog import ExportDialog
+
+# Import widgets
+from .widgets.data_info_panel import DataInfoPanel
+from .widgets.search_panel import SearchPanel
+from .widgets.bookmarks_panel import BookmarksPanel
+from .widgets.statistics_panel import StatisticsPanel
+
+# Import tools
+from .tools.sketching_tools import SketchingToolbar
+
+# Import processing
+from .processing.sudan_processing_tools import ProcessingDialog
+
+# Import reports
+from .reports.report_generator import ReportDialog
+
+# Import validation
+from .validation.data_validator import ValidationDialog
 
 
 class SudanDataLoader:
-    """QGIS Plugin for loading Sudan administrative boundary data."""
+    """QGIS Plugin for loading and managing Sudan administrative boundary data."""
 
     def __init__(self, iface):
         """
@@ -30,6 +80,27 @@ class SudanDataLoader:
         """
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
+
+        # Initialize ALL attributes first (before any complex initialization)
+        # This ensures unload() can safely check these attributes even if initGui fails
+        self.toolbar = None
+        self.menu = None
+        self.actions = {}
+        self.data_info_panel = None
+        self.search_panel = None
+        self.bookmarks_panel = None
+        self.statistics_panel = None
+        self.sketching_toolbar = None
+        self.data_dir = None
+        self.styles_dir = None
+        self.settings_manager = None
+        self.data_manager = None
+        self.style_manager = None
+
+        # Initialize managers
+        self.settings_manager = SettingsManager()
+        self.data_manager = DataManager(None, None)
+        self.style_manager = StyleManager(self.plugin_dir)
 
         # Bundled data directories (fallback)
         self.bundled_data_dir = os.path.join(self.plugin_dir, 'Data')
@@ -45,54 +116,297 @@ class SudanDataLoader:
         self.cache_styles_dir = os.path.join(self.cache_dir, 'styles')
         self.local_version_file = os.path.join(self.cache_dir, 'version.json')
 
-        # Active data directories (resolved at runtime)
-        self.data_dir = None
-        self.styles_dir = None
-
-        self.action = None
-        self.download_action = None
-
-        # Define layers to load (order: first = bottom, last = top)
+        # Define layers configuration
         self.layers_config = [
-            {'gpkg': 'admin0.gpkg', 'style': 'admin0.qml', 'name': 'Sudan Admin 0 - Country'},
-            {'gpkg': 'admin1.gpkg', 'style': 'admin1.qml', 'name': 'Sudan Admin 1 - States'},
-            {'gpkg': 'admin2.gpkg', 'style': 'admin2.qml', 'name': 'Sudan Admin 2 - Localities'},
-            {'gpkg': 'admin_lines.gpkg', 'style': None, 'name': 'Sudan Admin Lines'},
-            {'gpkg': 'admin_points.gpkg', 'style': None, 'name': 'Sudan Admin Points'},
+            {'gpkg': 'admin0.gpkg', 'style': 'admin0.qml', 'name': 'Sudan Admin 0 - Country', 'id': 'admin0'},
+            {'gpkg': 'admin1.gpkg', 'style': 'admin1.qml', 'name': 'Sudan Admin 1 - States', 'id': 'admin1'},
+            {'gpkg': 'admin2.gpkg', 'style': 'admin2.qml', 'name': 'Sudan Admin 2 - Localities', 'id': 'admin2'},
+            {'gpkg': 'admin_lines.gpkg', 'style': None, 'name': 'Sudan Admin Lines', 'id': 'admin_lines'},
+            {'gpkg': 'admin_points.gpkg', 'style': None, 'name': 'Sudan Admin Points', 'id': 'admin_points'},
         ]
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-        # Action to load Sudan admin data
-        self.action = QAction(
-            QIcon(),
-            'Load Sudan Admin Data',
-            self.iface.mainWindow()
-        )
-        self.action.triggered.connect(self.run)
-        self.action.setWhatsThis('Load Sudan administrative boundary data')
+        # Create main menu
+        self.menu = QMenu('&Sudan Data Loader')
+        self.iface.mainWindow().menuBar().addMenu(self.menu)
 
-        # Action to download/update Sudan data
-        self.download_action = QAction(
-            QIcon(),
-            'Download/Update Sudan Data',
-            self.iface.mainWindow()
-        )
-        self.download_action.triggered.connect(self.download_update)
-        self.download_action.setWhatsThis('Download or update Sudan data from remote server')
+        # === Data Loading Section ===
+        self._create_action('load_data', 'Load Sudan Data...', self.show_layer_selection)
+        self._create_action('load_all', 'Load All Layers', self.load_all_layers)
+        self._create_action('download_update', 'Download/Update Data', self.download_update)
+        self.menu.addSeparator()
 
-        # Add toolbar buttons and menu items
-        self.iface.addToolBarIcon(self.action)
-        self.iface.addToolBarIcon(self.download_action)
-        self.iface.addPluginToVectorMenu('&Sudan Data Downloader', self.action)
-        self.iface.addPluginToVectorMenu('&Sudan Data Downloader', self.download_action)
+        # === Labels Submenu ===
+        labels_menu = QMenu('Quick Labels', self.menu)
+
+        self._create_action('label_state_en', 'State Names (English)',
+                           lambda: LabelingUtils.apply_state_labels('english'), labels_menu)
+        self._create_action('label_state_ar', 'State Names (Arabic)',
+                           lambda: LabelingUtils.apply_state_labels('arabic'), labels_menu)
+        self._create_action('label_state_both', 'State Names (Both)',
+                           lambda: LabelingUtils.apply_state_labels('both'), labels_menu)
+        self._create_action('label_state_pcode', 'State P-Codes',
+                           lambda: LabelingUtils.apply_state_labels('pcode'), labels_menu)
+        labels_menu.addSeparator()
+        self._create_action('label_locality_en', 'Locality Names (English)',
+                           lambda: LabelingUtils.apply_locality_labels('english'), labels_menu)
+        self._create_action('label_locality_ar', 'Locality Names (Arabic)',
+                           lambda: LabelingUtils.apply_locality_labels('arabic'), labels_menu)
+        labels_menu.addSeparator()
+        self._create_action('label_remove', 'Remove All Labels',
+                           LabelingUtils.remove_all_labels, labels_menu)
+
+        self.menu.addMenu(labels_menu)
+
+        # === Style Presets Submenu ===
+        styles_menu = QMenu('Style Presets', self.menu)
+
+        self._create_action('style_default', 'Default',
+                           lambda: self.style_manager.apply_preset('default'), styles_menu)
+        self._create_action('style_satellite', 'Satellite-Friendly',
+                           lambda: self.style_manager.apply_preset('satellite'), styles_menu)
+        self._create_action('style_grayscale', 'Grayscale',
+                           lambda: self.style_manager.apply_preset('grayscale'), styles_menu)
+        self._create_action('style_humanitarian', 'Humanitarian',
+                           lambda: self.style_manager.apply_preset('humanitarian'), styles_menu)
+
+        self.menu.addMenu(styles_menu)
+
+        # === Basemaps Submenu ===
+        basemaps_menu = QMenu('Basemaps', self.menu)
+
+        self._create_action('basemap_osm', 'OpenStreetMap',
+                           lambda: self.style_manager.add_basemap('osm_standard'), basemaps_menu)
+        self._create_action('basemap_humanitarian', 'Humanitarian OSM',
+                           lambda: self.style_manager.add_basemap('osm_humanitarian'), basemaps_menu)
+        self._create_action('basemap_satellite', 'ESRI Satellite',
+                           lambda: self.style_manager.add_basemap('esri_satellite'), basemaps_menu)
+        self._create_action('basemap_topo', 'ESRI Topographic',
+                           lambda: self.style_manager.add_basemap('esri_topo'), basemaps_menu)
+        self._create_action('basemap_carto_light', 'CartoDB Light',
+                           lambda: self.style_manager.add_basemap('carto_light'), basemaps_menu)
+        self._create_action('basemap_carto_dark', 'CartoDB Dark',
+                           lambda: self.style_manager.add_basemap('carto_dark'), basemaps_menu)
+        basemaps_menu.addSeparator()
+        self._create_action('basemap_remove', 'Remove All Basemaps',
+                           self.style_manager.remove_all_basemaps, basemaps_menu)
+
+        self.menu.addMenu(basemaps_menu)
+        self.menu.addSeparator()
+
+        # === Panels Section ===
+        panels_menu = QMenu('Panels', self.menu)
+
+        self._create_action('panel_info', 'Data Info Panel', self.toggle_data_info_panel, panels_menu)
+        self._create_action('panel_search', 'Search Panel', self.toggle_search_panel, panels_menu)
+        self._create_action('panel_bookmarks', 'Bookmarks Panel', self.toggle_bookmarks_panel, panels_menu)
+        self._create_action('panel_statistics', 'Statistics Panel', self.toggle_statistics_panel, panels_menu)
+
+        self.menu.addMenu(panels_menu)
+        self.menu.addSeparator()
+
+        # === Tools Section ===
+        self._create_action('query_builder', 'Query Builder...', self.show_query_builder)
+        self._create_action('export', 'Export Features...', self.show_export_dialog)
+        self._create_action('processing', 'Processing Tools...', self.show_processing_dialog)
+        self._create_action('sketching', 'Show Sketching Toolbar', self.toggle_sketching_toolbar)
+        self.menu.addSeparator()
+
+        # === Reports & Validation ===
+        self._create_action('report', 'Generate Report...', self.show_report_dialog)
+        self._create_action('validate', 'Validate Data...', self.show_validation_dialog)
+        self.menu.addSeparator()
+
+        # === Settings ===
+        self._create_action('settings', 'Settings...', self.show_settings)
+
+        # Create toolbar
+        self.toolbar = self.iface.addToolBar('Sudan Data Loader')
+        self.toolbar.setObjectName('SudanDataLoaderToolbar')
+
+        # Add main actions to toolbar
+        self.toolbar.addAction(self.actions['load_data'])
+        self.toolbar.addAction(self.actions['download_update'])
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.actions['panel_search'])
+        self.toolbar.addAction(self.actions['panel_bookmarks'])
+
+        # Initialize dock widgets (hidden by default)
+        self._init_dock_widgets()
+
+        # Initialize sketching toolbar (hidden by default)
+        self.sketching_toolbar = SketchingToolbar(self.iface)
+
+    def _create_action(self, name, text, callback, parent=None):
+        """Create and register an action."""
+        action = QAction(text, self.iface.mainWindow())
+        action.triggered.connect(callback)
+
+        if parent is None:
+            self.menu.addAction(action)
+        else:
+            parent.addAction(action)
+
+        self.actions[name] = action
+        return action
+
+    def _init_dock_widgets(self):
+        """Initialize dock widgets."""
+        # Data Info Panel
+        self.data_info_panel = DataInfoPanel(self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.data_info_panel)
+        self.data_info_panel.hide()
+
+        # Search Panel
+        self.search_panel = SearchPanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.search_panel)
+        self.search_panel.hide()
+
+        # Bookmarks Panel
+        self.bookmarks_panel = BookmarksPanel(self.iface, self.settings_manager, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.bookmarks_panel)
+        self.bookmarks_panel.hide()
+
+        # Statistics Panel
+        self.statistics_panel = StatisticsPanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.statistics_panel)
+        self.statistics_panel.hide()
 
     def unload(self):
         """Remove the plugin menu items and icons from QGIS GUI."""
-        self.iface.removePluginVectorMenu('&Sudan Data Downloader', self.action)
-        self.iface.removePluginVectorMenu('&Sudan Data Downloader', self.download_action)
-        self.iface.removeToolBarIcon(self.action)
-        self.iface.removeToolBarIcon(self.download_action)
+        # Remove menu (use getattr for safety)
+        menu = getattr(self, 'menu', None)
+        if menu:
+            try:
+                self.iface.mainWindow().menuBar().removeAction(menu.menuAction())
+            except Exception:
+                pass
+
+        # Remove toolbar
+        toolbar = getattr(self, 'toolbar', None)
+        if toolbar:
+            try:
+                del self.toolbar
+            except Exception:
+                pass
+
+        # Remove dock widgets
+        data_info_panel = getattr(self, 'data_info_panel', None)
+        if data_info_panel:
+            try:
+                self.iface.removeDockWidget(data_info_panel)
+            except Exception:
+                pass
+
+        search_panel = getattr(self, 'search_panel', None)
+        if search_panel:
+            try:
+                self.iface.removeDockWidget(search_panel)
+            except Exception:
+                pass
+
+        bookmarks_panel = getattr(self, 'bookmarks_panel', None)
+        if bookmarks_panel:
+            try:
+                self.iface.removeDockWidget(bookmarks_panel)
+            except Exception:
+                pass
+
+        statistics_panel = getattr(self, 'statistics_panel', None)
+        if statistics_panel:
+            try:
+                self.iface.removeDockWidget(statistics_panel)
+            except Exception:
+                pass
+
+        # Remove sketching toolbar
+        sketching_toolbar = getattr(self, 'sketching_toolbar', None)
+        if sketching_toolbar:
+            try:
+                sketching_toolbar.remove_toolbar()
+            except Exception:
+                pass
+
+    # ============ Panel Toggles ============
+
+    def toggle_data_info_panel(self):
+        """Toggle the data info panel visibility."""
+        if self.data_info_panel.isVisible():
+            self.data_info_panel.hide()
+        else:
+            self.data_info_panel.show()
+            self.data_info_panel.refresh_info()
+
+    def toggle_search_panel(self):
+        """Toggle the search panel visibility."""
+        if self.search_panel.isVisible():
+            self.search_panel.hide()
+        else:
+            self.search_panel.show()
+
+    def toggle_bookmarks_panel(self):
+        """Toggle the bookmarks panel visibility."""
+        if self.bookmarks_panel.isVisible():
+            self.bookmarks_panel.hide()
+        else:
+            self.bookmarks_panel.show()
+
+    def toggle_statistics_panel(self):
+        """Toggle the statistics panel visibility."""
+        if self.statistics_panel.isVisible():
+            self.statistics_panel.hide()
+        else:
+            self.statistics_panel.show()
+
+    def toggle_sketching_toolbar(self):
+        """Toggle the sketching toolbar."""
+        if self.sketching_toolbar.sketching_toolbar:
+            self.sketching_toolbar.remove_toolbar()
+        else:
+            self.sketching_toolbar.setup_toolbar()
+
+    # ============ Dialog Methods ============
+
+    def show_settings(self):
+        """Show the settings dialog."""
+        dialog = SettingsDialog(self.settings_manager, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_layer_selection(self):
+        """Show the layer selection dialog."""
+        dialog = LayerSelectionDialog(self.settings_manager, self.iface.mainWindow())
+        if dialog.exec_():
+            selected_layers = dialog.get_selected_layers()
+            if selected_layers:
+                self.load_selected_layers(selected_layers)
+
+    def show_query_builder(self):
+        """Show the query builder dialog."""
+        dialog = QueryBuilderDialog(self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_export_dialog(self):
+        """Show the export dialog."""
+        dialog = ExportDialog(self.settings_manager, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_processing_dialog(self):
+        """Show the processing tools dialog."""
+        dialog = ProcessingDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_report_dialog(self):
+        """Show the report generation dialog."""
+        dialog = ReportDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_validation_dialog(self):
+        """Show the data validation dialog."""
+        dialog = ValidationDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    # ============ Data Loading Methods ============
 
     def _get_data_directories(self):
         """
@@ -107,7 +421,8 @@ class SudanDataLoader:
         cache_valid = (
             os.path.isdir(self.cache_data_dir) and
             os.path.isdir(self.cache_styles_dir) and
-            any(f.endswith('.gpkg') for f in os.listdir(self.cache_data_dir) if os.path.isfile(os.path.join(self.cache_data_dir, f)))
+            any(f.endswith('.gpkg') for f in os.listdir(self.cache_data_dir)
+                if os.path.isfile(os.path.join(self.cache_data_dir, f)))
         )
 
         if cache_valid:
@@ -115,27 +430,30 @@ class SudanDataLoader:
         else:
             return self.bundled_data_dir, self.bundled_styles_dir
 
-    def run(self):
-        """Main method to load all Sudan admin layers."""
+    def load_all_layers(self):
+        """Load all Sudan admin layers."""
+        self.load_selected_layers(['admin0', 'admin1', 'admin2', 'admin_lines', 'admin_points'])
+
+    def load_selected_layers(self, layer_ids):
+        """
+        Load selected layers.
+
+        :param layer_ids: List of layer IDs to load
+        """
         # Resolve which data directories to use
         self.data_dir, self.styles_dir = self._get_data_directories()
+        self.data_manager.set_directories(self.data_dir, self.styles_dir)
 
         # Validate directories exist
         if not self._validate_directories():
             return
 
-        # Check for missing files
-        missing_files = self._check_missing_files()
-        if missing_files:
-            self._show_error(
-                'Missing Files',
-                'The following required files are missing:\n\n' + '\n'.join(missing_files)
-            )
-            return
-
         # Load layers
         loaded_layers = []
         for config in self.layers_config:
+            if config['id'] not in layer_ids:
+                continue
+
             layer = self._load_gpkg_layer(config['gpkg'], config['name'])
             if layer:
                 # Apply style if specified
@@ -147,7 +465,7 @@ class SudanDataLoader:
                 loaded_layers.append(layer.name())
 
         if loaded_layers:
-            # Zoom to the extent of the first layer (admin0 - country boundary)
+            # Zoom to the extent of the first layer
             first_layer = QgsProject.instance().mapLayersByName(self.layers_config[0]['name'])
             if first_layer:
                 self.iface.mapCanvas().setExtent(first_layer[0].extent())
@@ -157,12 +475,16 @@ class SudanDataLoader:
                 'Success',
                 f'Successfully loaded {len(loaded_layers)} layers:\n\n' + '\n'.join(loaded_layers)
             )
+
+            # Refresh data info panel if visible
+            if self.data_info_panel and self.data_info_panel.isVisible():
+                self.data_info_panel.refresh_info()
         else:
             self._show_warning('Warning', 'No layers were loaded.')
 
     def _load_gpkg_layer(self, gpkg_filename, layer_name):
         """
-        Load a layer from a GeoPackage file using auto-detection.
+        Load a layer from a GeoPackage file.
 
         :param gpkg_filename: Name of the GeoPackage file
         :param layer_name: Display name for the layer
@@ -170,9 +492,7 @@ class SudanDataLoader:
         """
         gpkg_path = os.path.join(self.data_dir, gpkg_filename)
 
-        # Use ogr to open and auto-detect layer name
-        uri = gpkg_path
-        layer = QgsVectorLayer(uri, layer_name, 'ogr')
+        layer = QgsVectorLayer(gpkg_path, layer_name, 'ogr')
 
         if not layer.isValid():
             self._show_warning(
@@ -195,28 +515,19 @@ class SudanDataLoader:
 
         if os.path.exists(style_path):
             result = layer.loadNamedStyle(style_path)
-            if not result[1]:  # result is tuple (success_message, success_bool)
+            if not result[1]:
                 self._show_warning(
                     'Style Load Warning',
                     f'Could not apply style {style_filename} to layer {layer.name()}'
                 )
-        else:
-            self._show_warning(
-                'Style Not Found',
-                f'Style file not found: {style_filename}'
-            )
 
     def _validate_directories(self):
-        """
-        Check that Data and styles directories exist.
-
-        :returns: True if directories exist, False otherwise
-        """
+        """Check that Data and styles directories exist."""
         if not os.path.isdir(self.data_dir):
             self._show_error(
                 'Data Directory Missing',
                 f'The Data directory was not found at:\n{self.data_dir}\n\n'
-                'Please ensure the plugin is installed correctly.'
+                'Please use "Download/Update Data" to download the data.'
             )
             return False
 
@@ -230,38 +541,11 @@ class SudanDataLoader:
 
         return True
 
-    def _check_missing_files(self):
-        """
-        Check for missing GeoPackage and style files.
-
-        :returns: List of missing file paths
-        """
-        missing = []
-
-        for config in self.layers_config:
-            gpkg_path = os.path.join(self.data_dir, config['gpkg'])
-            if not os.path.exists(gpkg_path):
-                missing.append(f"Data/{config['gpkg']}")
-
-            if config['style']:
-                style_path = os.path.join(self.styles_dir, config['style'])
-                if not os.path.exists(style_path):
-                    missing.append(f"styles/{config['style']}")
-
-        return missing
-
     # ============ Download/Update Methods ============
 
     def download_update(self):
         """
         Main method to download or update Sudan data from remote server.
-
-        Orchestrates the download process:
-        1. Fetch version.json from server
-        2. Compare with local cached version
-        3. If update needed, download ZIP bundle
-        4. Extract safely to cache directory
-        5. Save version.json locally
         """
         # Fetch remote version info
         version_info = self._fetch_version_info()
@@ -293,14 +577,14 @@ class SudanDataLoader:
         # Download the bundle
         zip_data = self._download_bundle(bundle_url, sha256)
         if zip_data is None:
-            return  # Download cancelled or failed
+            return
 
         # Ensure cache directory exists
         os.makedirs(self.cache_dir, exist_ok=True)
 
         # Extract ZIP safely
         if not self._extract_zip_safely(zip_data, self.cache_dir):
-            return  # Extraction failed
+            return
 
         # Save version info locally
         self._save_local_version(version_info)
@@ -311,11 +595,7 @@ class SudanDataLoader:
         )
 
     def _fetch_version_info(self):
-        """
-        Fetch version.json from the remote server.
-
-        :returns: dict with version info or None on failure
-        """
+        """Fetch version.json from the remote server."""
         request = QgsBlockingNetworkRequest()
         err = request.get(QNetworkRequest(QUrl(self.VERSION_URL)))
 
@@ -341,11 +621,7 @@ class SudanDataLoader:
             return None
 
     def _get_local_version(self):
-        """
-        Read local version.json from cache directory if it exists.
-
-        :returns: Version string or None if not found
-        """
+        """Read local version.json from cache directory if it exists."""
         if not os.path.exists(self.local_version_file):
             return None
 
@@ -357,108 +633,79 @@ class SudanDataLoader:
             return None
 
     def _download_bundle(self, url, sha256=None):
-        """
-        Download the data bundle from the given URL.
-
-        :param url: URL to download from
-        :param sha256: Optional SHA256 hash to verify download
-        :returns: Downloaded bytes or None on cancel/error
-        """
-        # Create progress dialog
+        """Download the data bundle from the given URL (handles redirects)."""
         progress = QProgressDialog(
             'Downloading Sudan Data...',
-            'Cancel',
-            0, 100,
+            None,  # No cancel button for blocking request
+            0, 0,  # Indeterminate progress
             self.iface.mainWindow()
         )
         progress.setWindowTitle('Download Progress')
         progress.setWindowModality(Qt.WindowModal)
         progress.setMinimumDuration(0)
-        progress.setValue(0)
+        progress.show()
 
-        # Use QgsNetworkAccessManager for the download
-        manager = QgsNetworkAccessManager.instance()
+        # Use QgsBlockingNetworkRequest which handles redirects automatically
         request = QNetworkRequest(QUrl(url))
-        reply = manager.get(request)
+        request.setAttribute(QNetworkRequest.RedirectPolicyAttribute, QNetworkRequest.NoLessSafeRedirectPolicy)
 
-        # Track downloaded data
-        downloaded_data = bytearray()
-        cancelled = False
-
-        def on_download_progress(received, total):
-            nonlocal cancelled
-            if progress.wasCanceled():
-                cancelled = True
-                reply.abort()
-                return
-            if total > 0:
-                progress.setValue(int(received * 100 / total))
-
-        def on_ready_read():
-            downloaded_data.extend(reply.readAll().data())
-
-        def on_finished():
-            loop.quit()
-
-        reply.downloadProgress.connect(on_download_progress)
-        reply.readyRead.connect(on_ready_read)
-        reply.finished.connect(on_finished)
-
-        # Run event loop until download completes
-        loop = QEventLoop()
-        loop.exec_()
+        blocking_request = QgsBlockingNetworkRequest()
+        error_code = blocking_request.get(request, forceRefresh=True)
 
         progress.close()
 
-        if cancelled:
-            self._show_info('Cancelled', 'Download cancelled.')
-            return None
-
-        if reply.error() != QNetworkReply.NoError:
+        if error_code != QgsBlockingNetworkRequest.NoError:
             self._show_error(
                 'Download Error',
-                f'Failed to download data bundle:\n{reply.errorString()}'
+                f'Failed to download data bundle:\n{blocking_request.errorMessage()}'
             )
-            reply.deleteLater()
             return None
 
-        reply.deleteLater()
-        data = bytes(downloaded_data)
+        reply = blocking_request.reply()
+        data = bytes(reply.content())
+
+        # Check if we got data
+        if len(data) == 0:
+            self._show_error(
+                'Download Error',
+                'Downloaded file is empty. Please check your internet connection.'
+            )
+            return None
 
         # Verify SHA256 if provided
         if sha256:
             calculated_hash = hashlib.sha256(data).hexdigest()
             if calculated_hash.lower() != sha256.lower():
-                self._show_error(
-                    'Verification Failed',
-                    'Downloaded file hash does not match expected hash.\n'
-                    'The download may be corrupted.'
+                # Ask user if they want to proceed despite hash mismatch
+                msg_reply = QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    'Hash Verification Warning',
+                    'Downloaded file hash does not match expected hash.\n\n'
+                    f'Expected: {sha256[:16]}...\n'
+                    f'Got: {calculated_hash[:16]}...\n\n'
+                    'This could mean:\n'
+                    '- The file on the server was updated\n'
+                    '- The version.json needs to be updated\n'
+                    '- The download may be corrupted\n\n'
+                    'Do you want to proceed anyway?',
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
                 )
-                return None
+                if msg_reply != QMessageBox.Yes:
+                    return None
 
         return data
 
     def _extract_zip_safely(self, zip_data, target_dir):
-        """
-        Extract ZIP data safely to the target directory.
-
-        Implements zip-slip protection to prevent path traversal attacks.
-
-        :param zip_data: Bytes of the ZIP file
-        :param target_dir: Directory to extract to
-        :returns: True on success, False on failure
-        """
-        # Write to temporary file
+        """Extract ZIP data safely to the target directory."""
         temp_file = None
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as f:
                 temp_file = f.name
                 f.write(zip_data)
 
-            # Open and extract ZIP
             with zipfile.ZipFile(temp_file, 'r') as zf:
                 for member in zf.namelist():
-                    # Check for safe path (zip-slip prevention)
                     if not self._is_safe_path(target_dir, member):
                         self._show_error(
                             'Security Error',
@@ -467,18 +714,14 @@ class SudanDataLoader:
                         )
                         return False
 
-                    # Extract the member
                     target_path = os.path.join(target_dir, member)
 
-                    # Create directories if needed
                     if member.endswith('/'):
                         os.makedirs(target_path, exist_ok=True)
                     else:
-                        # Ensure parent directory exists
                         parent_dir = os.path.dirname(target_path)
                         os.makedirs(parent_dir, exist_ok=True)
 
-                        # Extract file
                         with zf.open(member) as source, open(target_path, 'wb') as dest:
                             dest.write(source.read())
 
@@ -497,7 +740,6 @@ class SudanDataLoader:
             )
             return False
         finally:
-            # Clean up temp file
             if temp_file and os.path.exists(temp_file):
                 try:
                     os.remove(temp_file)
@@ -505,36 +747,20 @@ class SudanDataLoader:
                     pass
 
     def _is_safe_path(self, base_dir, file_path):
-        """
-        Check if a file path is safe (within the base directory).
-
-        Prevents zip-slip attacks by ensuring extracted paths stay within target.
-
-        :param base_dir: Base directory that files should be within
-        :param file_path: Path to check
-        :returns: True if safe, False if potential path traversal
-        """
-        # Normalize and resolve the full path
+        """Check if a file path is safe (within the base directory)."""
         full_path = os.path.normpath(os.path.join(base_dir, file_path))
         base_path = os.path.normpath(base_dir)
 
-        # Check for path traversal attempts
         if '..' in file_path:
             return False
 
-        # Check for absolute paths
         if os.path.isabs(file_path):
             return False
 
-        # Ensure the resolved path is within the base directory
         return full_path.startswith(base_path + os.sep) or full_path == base_path
 
     def _save_local_version(self, version_info):
-        """
-        Save version info to local cache directory.
-
-        :param version_info: Dict with version information to save
-        """
+        """Save version info to local cache directory."""
         try:
             os.makedirs(self.cache_dir, exist_ok=True)
             with open(self.local_version_file, 'w', encoding='utf-8') as f:

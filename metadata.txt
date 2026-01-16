@@ -1,24 +1,37 @@
 [general]
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
-description=Load Sudan administrative boundary data with automatic updates from GitHub releases
-version=1.0.1
+description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
+version=2.0.0
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
-about=A QGIS plugin for loading Sudan administrative boundary data.
+about=A full-featured QGIS plugin for Sudan administrative data management and analysis.
 
-    Features:
-    - Load administrative boundaries (country, states, localities)
-    - Administrative lines and points
-    - Automatic styling with QML files
-    - Download/Update data from GitHub releases
-    - SHA256 verification for secure downloads
-    - Offline support with bundled data
+    === PHASE 1: Quick Wins ===
+    - Settings/Configuration Dialog with QSettings persistence
+    - Layer Selection Dialog with checkboxes and remember selection
+    - Quick Labeling Tools (English, Arabic, P-Codes)
+    - Style Preset Switcher (Default, Satellite-Friendly, Grayscale, Humanitarian)
+    - Data Info Panel showing version, feature counts, CRS, extent
+
+    === PHASE 2: Core Features ===
+    - Search/Filter Panel with autocomplete (English & Arabic)
+    - Quick Navigation Bookmarks for all 18 states + custom bookmarks
+    - Statistics Panel with area calculations and CSV export
+    - Attribute Query Builder with visual interface
+    - Basemap Integration (OSM, Satellite, Humanitarian, CartoDB)
+    - Report Generation (HTML/PDF) - Summary and State Profiles
+
+    === PHASE 3: Advanced Features ===
+    - Export Features to GeoPackage, Shapefile, GeoJSON, KML, CSV, DXF
+    - Sketching/Drawing Tools (Points, Lines, Polygons)
+    - Processing Tools (Clip by State, Buffer, Dissolve, Intersection)
+    - Data Validation Checker (Geometry, Topology, Attributes)
 
     Data layers included:
     - Admin 0: Country boundary
-    - Admin 1: States
+    - Admin 1: States (18)
     - Admin 2: Localities
     - Administrative lines
     - Administrative points
@@ -26,14 +39,34 @@ about=A QGIS plugin for loading Sudan administrative boundary data.
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=1.0.0 - Initial release
-    - Load Sudan admin boundaries from GeoPackages
-    - Apply QML styles automatically
-    - Download/Update feature with GitHub releases integration
-    - SHA256 hash verification
-    - Zip-slip protection for secure extraction
+changelog=2.0.0 - Major Feature Release
+    === New Features ===
+    - Settings dialog with persistent configuration
+    - Layer selection dialog with remember option
+    - Quick labeling tools (English/Arabic/P-Codes)
+    - Style preset switcher (4 themes)
+    - Data info dock panel
+    - Search panel with autocomplete
+    - Bookmarks panel (18 states + custom)
+    - Statistics panel with area calculations
+    - Query builder dialog
+    - Basemap integration (7 basemap options)
+    - Report generation (HTML/PDF)
+    - Export dialog (6 formats)
+    - Sketching toolbar
+    - Processing tools integration
+    - Data validation checker
 
-tags=sudan,administrative,boundaries,geopackage,vector,africa,download
+    === Improvements ===
+    - Modular architecture with separate packages
+    - Improved menu organization with submenus
+    - Toolbar with quick access buttons
+    - Better error handling
+
+    1.0.1 - Bug fixes and stability improvements
+    1.0.0 - Initial release
+
+tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching
 
 homepage=https://github.com/Osman-Geomatics93/sudan_data_loader
 category=Vector
