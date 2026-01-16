@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=Load Sudan administrative boundary data with automatic updates from GitHub releases
-version=1.0.0
+version=1.0.1
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
