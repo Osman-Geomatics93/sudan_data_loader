@@ -178,8 +178,9 @@ class SettingsDialog(QDialog):
 
         # Info label
         info_label = QLabel(
-            'ACLED provides conflict event data. Register for free API access at:\n'
-            '<a href="https://acleddata.com/register/">https://acleddata.com/register/</a>'
+            'ACLED provides conflict event data. Create a free myACLED account at:\n'
+            '<a href="https://acleddata.com/">https://acleddata.com/</a>\n\n'
+            'Use your myACLED account email and password below.'
         )
         info_label.setOpenExternalLinks(True)
         info_label.setWordWrap(True)
@@ -190,19 +191,19 @@ class SettingsDialog(QDialog):
         form_layout = QFormLayout()
 
         self.acled_email_edit = QLineEdit()
-        self.acled_email_edit.setPlaceholderText('Enter your registered email...')
+        self.acled_email_edit.setPlaceholderText('Your myACLED account email...')
         form_layout.addRow('Email:', self.acled_email_edit)
 
-        # API Key field
+        # Password field (ACLED uses account password for OAuth)
         self.acled_api_key_edit = QLineEdit()
-        self.acled_api_key_edit.setPlaceholderText('Enter your ACLED API key...')
+        self.acled_api_key_edit.setPlaceholderText('Your myACLED account password...')
         self.acled_api_key_edit.setEchoMode(QLineEdit.Password)
-        form_layout.addRow('API Key:', self.acled_api_key_edit)
+        form_layout.addRow('Password:', self.acled_api_key_edit)
 
         acled_layout.addLayout(form_layout)
 
-        # Show/Hide API key checkbox
-        self.show_api_key_check = QCheckBox('Show API key')
+        # Show/Hide password checkbox
+        self.show_api_key_check = QCheckBox('Show password')
         self.show_api_key_check.toggled.connect(self._toggle_api_key_visibility)
         acled_layout.addWidget(self.show_api_key_check)
 
@@ -217,8 +218,10 @@ class SettingsDialog(QDialog):
         note_group = QGroupBox('Note')
         note_layout = QVBoxLayout(note_group)
         note_label = QLabel(
-            'Without API credentials, ACLED access may be limited to recent data only.\n'
-            'With valid credentials, you can access the full historical dataset.'
+            'ACLED requires a free account for API access.\n'
+            '1. Go to acleddata.com and create an account\n'
+            '2. Enter your account email and password above\n'
+            '3. Your credentials are stored locally and used for OAuth authentication'
         )
         note_label.setWordWrap(True)
         note_label.setStyleSheet("color: #666;")

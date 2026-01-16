@@ -102,10 +102,10 @@ class ACLEDBrowserDialog(QDialog):
 
         # API status indicator
         if self.settings_manager and self.settings_manager.has_acled_credentials():
-            api_status = QLabel('API: Connected (Full Access)')
+            api_status = QLabel('API: Credentials configured')
             api_status.setStyleSheet("color: #2ecc71; font-size: 10px; font-weight: bold;")
         else:
-            api_status = QLabel('API: Public Access (Limited) - Configure API key in Settings')
+            api_status = QLabel('API: No credentials - Add myACLED account in Settings > API Keys')
             api_status.setStyleSheet("color: #f39c12; font-size: 10px;")
         layout.addWidget(api_status)
 
