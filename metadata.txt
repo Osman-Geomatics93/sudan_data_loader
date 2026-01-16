@@ -1,29 +1,44 @@
 [general]
-name=Sudan Data Downloader
+name=Sudan Data Loader
 qgisMinimumVersion=3.0
-description=Loads Sudan administrative boundary data from GeoPackages and applies QML styles
+description=Load Sudan administrative boundary data with automatic updates from GitHub releases
 version=1.0.0
-author=Sudan GIS Team
-email=info@example.com
+author=Osman Ibrahim
+email=osmangeomatics93@gmail.com
 
-about=This plugin loads Sudan administrative boundary data including:
-    - Country boundary (admin0)
-    - States (admin1)
-    - Localities (admin2)
+about=A QGIS plugin for loading Sudan administrative boundary data.
+
+    Features:
+    - Load administrative boundaries (country, states, localities)
+    - Administrative lines and points
+    - Automatic styling with QML files
+    - Download/Update data from GitHub releases
+    - SHA256 verification for secure downloads
+    - Offline support with bundled data
+
+    Data layers included:
+    - Admin 0: Country boundary
+    - Admin 1: States
+    - Admin 2: Localities
     - Administrative lines
     - Administrative points
 
-    The data is loaded from GeoPackage files and styled with QML files.
-
-tracker=https://github.com/example/sudan-data-downloader/issues
-repository=https://github.com/example/sudan-data-downloader
+tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
+repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
 changelog=1.0.0 - Initial release
+    - Load Sudan admin boundaries from GeoPackages
+    - Apply QML styles automatically
+    - Download/Update feature with GitHub releases integration
+    - SHA256 hash verification
+    - Zip-slip protection for secure extraction
 
-tags=sudan,administrative,boundaries,geopackage,vector
+tags=sudan,administrative,boundaries,geopackage,vector,africa,download
 
-homepage=https://github.com/example/sudan-data-downloader
+homepage=https://github.com/Osman-Geomatics93/sudan_data_loader
 category=Vector
-icon=
+icon=icon.png
 experimental=False
 deprecated=False
+server=False
+hasProcessingProvider=no
