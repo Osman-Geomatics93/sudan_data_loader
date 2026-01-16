@@ -18,9 +18,9 @@ from qgis.PyQt.QtNetwork import QNetworkRequest
 class ACLEDClient(QObject):
     """Client for accessing ACLED API with OAuth authentication."""
 
-    # ACLED API endpoints (new OAuth-based API)
+    # ACLED API endpoints
     TOKEN_URL = "https://acleddata.com/oauth/token"
-    API_URL = "https://acleddata.com/api/acled"
+    API_URL = "https://acleddata.com/api/acled/read"
 
     # Sudan ISO code
     SUDAN_ISO = 729
@@ -99,8 +99,13 @@ class ACLEDClient(QObject):
 
         :returns: Access token string or None if failed
         """
+        from qgis.core import QgsMessageLog, Qgis
+
         if not self.email or not self.api_key:
+            QgsMessageLog.logMessage("ACLED: No credentials provided", "Sudan Data Loader", Qgis.Warning)
             return None
+
+        QgsMessageLog.logMessage(f"ACLED: Requesting OAuth token for {self.email}", "Sudan Data Loader", Qgis.Info)
 
         # Prepare OAuth request
         post_data = urlencode({
@@ -117,14 +122,26 @@ class ACLEDClient(QObject):
         error = blocking.post(request, QByteArray(post_data.encode('utf-8')))
 
         if error != QgsBlockingNetworkRequest.NoError:
-            self.error_occurred.emit(f"OAuth token request failed: {blocking.errorMessage()}")
+            error_msg = blocking.errorMessage()
+            QgsMessageLog.logMessage(f"ACLED OAuth failed: {error_msg}", "Sudan Data Loader", Qgis.Critical)
+            self.error_occurred.emit(f"OAuth token request failed: {error_msg}")
             return None
 
         try:
-            response = json.loads(bytes(blocking.reply().content()))
+            content = bytes(blocking.reply().content())
+            QgsMessageLog.logMessage(f"ACLED OAuth response: {content.decode('utf-8', errors='ignore')[:500]}", "Sudan Data Loader", Qgis.Info)
+
+            response = json.loads(content)
             self.access_token = response.get('access_token')
+
+            if self.access_token:
+                QgsMessageLog.logMessage("ACLED: OAuth token obtained successfully", "Sudan Data Loader", Qgis.Info)
+            else:
+                QgsMessageLog.logMessage(f"ACLED: No access_token in response: {response}", "Sudan Data Loader", Qgis.Warning)
+
             return self.access_token
         except (json.JSONDecodeError, KeyError) as e:
+            QgsMessageLog.logMessage(f"ACLED OAuth parse error: {str(e)}", "Sudan Data Loader", Qgis.Critical)
             self.error_occurred.emit(f"Failed to parse OAuth response: {str(e)}")
             return None
 
@@ -211,6 +228,13 @@ class ACLEDClient(QObject):
 
         try:
             content = bytes(blocking.reply().content())
+
+            # Debug: Log response for troubleshooting
+            from qgis.core import QgsMessageLog, Qgis
+            QgsMessageLog.logMessage(f"ACLED API URL: {url}", "Sudan Data Loader", Qgis.Info)
+            QgsMessageLog.logMessage(f"ACLED Response length: {len(content)} bytes", "Sudan Data Loader", Qgis.Info)
+            if len(content) < 1000:
+                QgsMessageLog.logMessage(f"ACLED Response: {content.decode('utf-8', errors='ignore')}", "Sudan Data Loader", Qgis.Info)
 
             # Check if response is empty
             if not content:

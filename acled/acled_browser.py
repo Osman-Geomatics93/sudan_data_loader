@@ -42,9 +42,13 @@ class ACLEDBrowserDialog(QDialog):
         self.pending_layer_data = None
 
         # Load API credentials from settings if available
+        from qgis.core import QgsMessageLog, Qgis
         if self.settings_manager and self.settings_manager.has_acled_credentials():
             api_key, email = self.settings_manager.get_acled_credentials()
+            QgsMessageLog.logMessage(f"ACLED: Loading credentials for {email}", "Sudan Data Loader", Qgis.Info)
             self.client.set_credentials(api_key, email)
+        else:
+            QgsMessageLog.logMessage("ACLED: No credentials found in settings", "Sudan Data Loader", Qgis.Warning)
 
         self.setWindowTitle('ACLED Conflict Data - Sudan')
         self.setMinimumSize(900, 650)
