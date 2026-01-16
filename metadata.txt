@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.2.0
+version=2.3.0
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
@@ -29,11 +29,17 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
     - Processing Tools (Clip by State, Buffer, Dissolve, Intersection)
     - Data Validation Checker (Geometry, Topology, Attributes)
 
-    === Humanitarian Data ===
+    === External Data Sources ===
     - HDX (Humanitarian Data Exchange) Integration
     - Browse and download Sudan humanitarian datasets
     - Health facilities, roads, education, conflict data
     - Direct layer loading from HDX
+
+    - ACLED (Armed Conflict Location & Event Data) Integration
+    - Real-time conflict event tracking for Sudan
+    - Filter by date range, event type, region
+    - Styled visualization with categorized symbols
+    - Event statistics and detailed information
 
     Data layers included:
     - Admin 0: Country boundary
@@ -45,7 +51,18 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.2.0 - Welcome Wizard & UX Improvements
+changelog=2.3.0 - ACLED Conflict Data Integration
+    - ACLED browser dialog for Sudan conflict events
+    - Filter by date range (quick presets + custom)
+    - Filter by event type (Battles, Violence, Explosions, Riots, Protests)
+    - Filter by state/region
+    - Event statistics panel with fatality counts
+    - Event details view with full information
+    - Categorized symbol styling by event type
+    - Color-coded visualization
+    - Organized External Data Sources menu
+
+    2.2.0 - Welcome Wizard & UX Improvements
     - Welcome Wizard for first-time users with guided setup
     - HDX category filtering - filter by Health, Education, etc.
     - Real-time text search filtering for datasets
@@ -86,7 +103,7 @@ changelog=2.2.0 - Welcome Wizard & UX Improvements
     1.0.1 - Bug fixes and stability improvements
     1.0.0 - Initial release
 
-tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching,hdx,humanitarian,health,education
+tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching,hdx,humanitarian,health,education,acled,conflict,crisis
 
 homepage=https://github.com/Osman-Geomatics93/sudan_data_loader
 category=Vector

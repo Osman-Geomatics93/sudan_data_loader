@@ -20,6 +20,7 @@ Features:
 - Processing tools (Clip, Buffer, Dissolve)
 - Data validation checker
 - HDX Humanitarian Data integration
+- ACLED Conflict Data integration
 """
 
 import os
@@ -71,6 +72,9 @@ from .validation.data_validator import ValidationDialog
 
 # Import HDX integration
 from .hdx.hdx_browser import HDXBrowserDialog
+
+# Import ACLED integration
+from .acled.acled_browser import ACLEDBrowserDialog
 
 
 class SudanDataLoader:
@@ -223,8 +227,15 @@ class SudanDataLoader:
         self._create_action('validate', 'Validate Data...', self.show_validation_dialog)
         self.menu.addSeparator()
 
-        # === HDX Humanitarian Data ===
-        self._create_action('hdx_browser', 'HDX Humanitarian Data...', self.show_hdx_browser)
+        # === External Data Sources ===
+        external_data_menu = QMenu('External Data Sources', self.menu)
+
+        self._create_action('hdx_browser', 'HDX Humanitarian Data...',
+                           self.show_hdx_browser, external_data_menu)
+        self._create_action('acled_browser', 'ACLED Conflict Data...',
+                           self.show_acled_browser, external_data_menu)
+
+        self.menu.addMenu(external_data_menu)
         self.menu.addSeparator()
 
         # === Help & Settings ===
@@ -458,6 +469,42 @@ class SudanDataLoader:
                 if failed:
                     msg += f"\n\nFailed to add {len(failed)} layer(s)."
                 QMessageBox.information(self.iface.mainWindow(), 'HDX Layers Added', msg)
+            elif failed:
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    'Layer Load Failed',
+                    f"Failed to load {len(failed)} layer(s):\n" + "\n".join(failed)
+                )
+
+    def show_acled_browser(self):
+        """Show the ACLED conflict data browser dialog."""
+        dialog = ACLEDBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+        # Add any pending layers after dialog closes (prevents QGIS crash)
+        pending = dialog.get_pending_layers()
+        if pending:
+            added = []
+            failed = []
+            for layer_info in pending:
+                success, result = dialog.add_layer_to_map(
+                    layer_info['geojson'],
+                    layer_info['layer_name'],
+                    layer_info['style_events']
+                )
+                if success:
+                    added.append(result)
+                else:
+                    failed.append(result)
+
+            # Show summary
+            if added:
+                self.iface.mapCanvas().refresh()
+                msg = f"Added {len(added)} conflict data layer(s) to the map:\n"
+                msg += "\n".join(f"  - {name}" for name in added)
+                if failed:
+                    msg += f"\n\nFailed to add {len(failed)} layer(s)."
+                QMessageBox.information(self.iface.mainWindow(), 'ACLED Layers Added', msg)
             elif failed:
                 QMessageBox.warning(
                     self.iface.mainWindow(),
