@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.3.1
+version=2.3.2
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
@@ -51,7 +51,15 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.3.1 - ACLED API Key Settings
+changelog=2.3.2 - ACLED API Fix
+    - Update to new ACLED OAuth-based API endpoint
+    - Fix API connection issues (old endpoint deprecated)
+    - Implement OAuth token authentication flow
+    - Add Bearer token authorization
+    - Improved error messages for authentication failures
+    - Note: ACLED now requires registration for all API access
+
+    2.3.1 - ACLED API Key Settings
     - Add API Keys tab to Settings dialog
     - Configure ACLED email and API key for full data access
     - Show/hide API key toggle with password masking
