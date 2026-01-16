@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.3.0
+version=2.3.1
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
@@ -51,7 +51,15 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.3.0 - ACLED Conflict Data Integration
+changelog=2.3.1 - ACLED API Key Settings
+    - Add API Keys tab to Settings dialog
+    - Configure ACLED email and API key for full data access
+    - Show/hide API key toggle with password masking
+    - Auto-load credentials when opening ACLED browser
+    - API connection status indicator in ACLED header
+    - Link to ACLED registration page
+
+    2.3.0 - ACLED Conflict Data Integration
     - ACLED browser dialog for Sudan conflict events
     - Filter by date range (quick presets + custom)
     - Filter by event type (Battles, Violence, Explosions, Riots, Protests)
