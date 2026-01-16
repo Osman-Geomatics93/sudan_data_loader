@@ -478,7 +478,7 @@ class SudanDataLoader:
 
     def show_acled_browser(self):
         """Show the ACLED conflict data browser dialog."""
-        dialog = ACLEDBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog = ACLEDBrowserDialog(self.iface, self.settings_manager, self.iface.mainWindow())
         dialog.exec_()
 
         # Add any pending layers after dialog closes (prevents QGIS crash)

@@ -55,6 +55,11 @@ class SettingsDialog(QDialog):
         self.setup_appearance_tab()
         self.tab_widget.addTab(self.appearance_tab, 'Appearance')
 
+        # API Keys tab
+        self.api_keys_tab = QWidget()
+        self.setup_api_keys_tab()
+        self.tab_widget.addTab(self.api_keys_tab, 'API Keys')
+
         # Button box
         button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.RestoreDefaults
@@ -163,6 +168,72 @@ class SettingsDialog(QDialog):
 
         layout.addStretch()
 
+    def setup_api_keys_tab(self):
+        """Set up the API Keys settings tab."""
+        layout = QVBoxLayout(self.api_keys_tab)
+
+        # ACLED API group
+        acled_group = QGroupBox('ACLED (Armed Conflict Location & Event Data)')
+        acled_layout = QVBoxLayout(acled_group)
+
+        # Info label
+        info_label = QLabel(
+            'ACLED provides conflict event data. Register for free API access at:\n'
+            '<a href="https://acleddata.com/register/">https://acleddata.com/register/</a>'
+        )
+        info_label.setOpenExternalLinks(True)
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("color: #666; margin-bottom: 10px;")
+        acled_layout.addWidget(info_label)
+
+        # Email field
+        form_layout = QFormLayout()
+
+        self.acled_email_edit = QLineEdit()
+        self.acled_email_edit.setPlaceholderText('Enter your registered email...')
+        form_layout.addRow('Email:', self.acled_email_edit)
+
+        # API Key field
+        self.acled_api_key_edit = QLineEdit()
+        self.acled_api_key_edit.setPlaceholderText('Enter your ACLED API key...')
+        self.acled_api_key_edit.setEchoMode(QLineEdit.Password)
+        form_layout.addRow('API Key:', self.acled_api_key_edit)
+
+        acled_layout.addLayout(form_layout)
+
+        # Show/Hide API key checkbox
+        self.show_api_key_check = QCheckBox('Show API key')
+        self.show_api_key_check.toggled.connect(self._toggle_api_key_visibility)
+        acled_layout.addWidget(self.show_api_key_check)
+
+        # Status label
+        self.acled_status_label = QLabel('')
+        self.acled_status_label.setStyleSheet("font-style: italic;")
+        acled_layout.addWidget(self.acled_status_label)
+
+        layout.addWidget(acled_group)
+
+        # Note about API access
+        note_group = QGroupBox('Note')
+        note_layout = QVBoxLayout(note_group)
+        note_label = QLabel(
+            'Without API credentials, ACLED access may be limited to recent data only.\n'
+            'With valid credentials, you can access the full historical dataset.'
+        )
+        note_label.setWordWrap(True)
+        note_label.setStyleSheet("color: #666;")
+        note_layout.addWidget(note_label)
+        layout.addWidget(note_group)
+
+        layout.addStretch()
+
+    def _toggle_api_key_visibility(self, show):
+        """Toggle API key visibility."""
+        if show:
+            self.acled_api_key_edit.setEchoMode(QLineEdit.Normal)
+        else:
+            self.acled_api_key_edit.setEchoMode(QLineEdit.Password)
+
     def load_settings(self):
         """Load settings into the dialog."""
         # General tab
@@ -194,6 +265,20 @@ class SettingsDialog(QDialog):
         for panel_id, checkbox in self.panel_checkboxes.items():
             checkbox.setChecked(self.settings_manager.get_panel_visibility(panel_id))
 
+        # API Keys tab
+        self.acled_email_edit.setText(self.settings_manager.get_acled_email() or '')
+        self.acled_api_key_edit.setText(self.settings_manager.get_acled_api_key() or '')
+        self._update_acled_status()
+
+    def _update_acled_status(self):
+        """Update ACLED credentials status label."""
+        if self.settings_manager.has_acled_credentials():
+            self.acled_status_label.setText('Status: Credentials configured')
+            self.acled_status_label.setStyleSheet("color: #27ae60; font-style: italic;")
+        else:
+            self.acled_status_label.setText('Status: No credentials configured')
+            self.acled_status_label.setStyleSheet("color: #e67e22; font-style: italic;")
+
     def save_settings(self):
         """Save settings from the dialog."""
         # General tab
@@ -221,6 +306,10 @@ class SettingsDialog(QDialog):
         # Panel visibility
         for panel_id, checkbox in self.panel_checkboxes.items():
             self.settings_manager.set_panel_visibility(panel_id, checkbox.isChecked())
+
+        # API Keys tab
+        self.settings_manager.set_acled_email(self.acled_email_edit.text().strip())
+        self.settings_manager.set_acled_api_key(self.acled_api_key_edit.text().strip())
 
     def restore_defaults(self):
         """Restore default settings."""

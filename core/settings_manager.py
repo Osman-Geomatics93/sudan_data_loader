@@ -30,6 +30,9 @@ class SettingsManager:
         'last_export_path': '',
         'sketching_layer_name': 'Sudan Sketches',
         'label_language': 'english',  # 'english', 'arabic', 'both'
+        # ACLED API credentials
+        'acled_api_key': '',
+        'acled_email': '',
     }
 
     def __init__(self):
@@ -177,6 +180,32 @@ class SettingsManager:
     def set_last_export_path(self, path):
         """Set the last used export path."""
         self.set('last_export_path', path)
+
+    def get_acled_api_key(self):
+        """Get the ACLED API key."""
+        return self.get('acled_api_key')
+
+    def set_acled_api_key(self, api_key):
+        """Set the ACLED API key."""
+        self.set('acled_api_key', api_key)
+
+    def get_acled_email(self):
+        """Get the ACLED email."""
+        return self.get('acled_email')
+
+    def set_acled_email(self, email):
+        """Set the ACLED email."""
+        self.set('acled_email', email)
+
+    def get_acled_credentials(self):
+        """Get ACLED API credentials as tuple (api_key, email)."""
+        return (self.get_acled_api_key(), self.get_acled_email())
+
+    def has_acled_credentials(self):
+        """Check if ACLED credentials are configured."""
+        api_key = self.get_acled_api_key()
+        email = self.get_acled_email()
+        return bool(api_key and email)
 
     def reset_to_defaults(self):
         """Reset all settings to defaults."""

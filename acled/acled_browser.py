@@ -32,13 +32,19 @@ from .acled_client import ACLEDClient
 class ACLEDBrowserDialog(QDialog):
     """Dialog for browsing and loading ACLED conflict data."""
 
-    def __init__(self, iface, parent=None):
+    def __init__(self, iface, settings_manager=None, parent=None):
         """Initialize the ACLED browser dialog."""
         super().__init__(parent)
         self.iface = iface
+        self.settings_manager = settings_manager
         self.client = ACLEDClient()
         self.current_events = []
         self.pending_layer_data = None
+
+        # Load API credentials from settings if available
+        if self.settings_manager and self.settings_manager.has_acled_credentials():
+            api_key, email = self.settings_manager.get_acled_credentials()
+            self.client.set_credentials(api_key, email)
 
         self.setWindowTitle('ACLED Conflict Data - Sudan')
         self.setMinimumSize(900, 650)
@@ -93,6 +99,15 @@ class ACLEDBrowserDialog(QDialog):
         subtitle = QLabel('Real-time conflict tracking for Sudan | Data source: acleddata.com')
         subtitle.setStyleSheet("color: #ffcccc; font-size: 11px;")
         layout.addWidget(subtitle)
+
+        # API status indicator
+        if self.settings_manager and self.settings_manager.has_acled_credentials():
+            api_status = QLabel('API: Connected (Full Access)')
+            api_status.setStyleSheet("color: #2ecc71; font-size: 10px; font-weight: bold;")
+        else:
+            api_status = QLabel('API: Public Access (Limited) - Configure API key in Settings')
+            api_status.setStyleSheet("color: #f39c12; font-size: 10px;")
+        layout.addWidget(api_status)
 
         return frame
 
