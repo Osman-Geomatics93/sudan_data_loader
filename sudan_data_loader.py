@@ -36,7 +36,7 @@ class SudanDataLoader:
         self.bundled_styles_dir = os.path.join(self.plugin_dir, 'styles')
 
         # Cache directories (user-writable location for downloaded data)
-        self.VERSION_URL = "https://example.com/sudan-data/version.json"  # User configurable
+        self.VERSION_URL = "https://raw.githubusercontent.com/Osman-Geomatics93/sudan_data_loader/master/version.json"
         self.cache_dir = os.path.join(
             QStandardPaths.writableLocation(QStandardPaths.AppDataLocation),
             'sudan_data_loader'
