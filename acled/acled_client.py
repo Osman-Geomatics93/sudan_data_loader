@@ -3,26 +3,24 @@
 ACLED Client for Sudan Data Loader.
 
 Provides access to Armed Conflict Location & Event Data (ACLED) for Sudan.
+Uses OAuth authentication for API access.
 """
 
 import json
-import os
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from qgis.PyQt.QtCore import QUrl, QObject, pyqtSignal
+from qgis.PyQt.QtCore import QUrl, QObject, pyqtSignal, QByteArray
 from qgis.core import QgsBlockingNetworkRequest
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 
 class ACLEDClient(QObject):
-    """Client for accessing ACLED API."""
+    """Client for accessing ACLED API with OAuth authentication."""
 
-    # ACLED API endpoint (public read access for recent data)
-    API_URL = "https://api.acleddata.com/acled/read"
-
-    # Export endpoint (for downloading without API key)
-    EXPORT_URL = "https://acleddata.com/download"
+    # ACLED API endpoints (new OAuth-based API)
+    TOKEN_URL = "https://acleddata.com/oauth/token"
+    API_URL = "https://acleddata.com/api/acled"
 
     # Sudan ISO code
     SUDAN_ISO = 729
@@ -81,17 +79,54 @@ class ACLEDClient(QObject):
         """
         Initialize the ACLED client.
 
-        :param api_key: ACLED API key (optional for limited access)
-        :param email: Email associated with API key
+        :param api_key: ACLED API key (password for OAuth)
+        :param email: Email associated with API key (username for OAuth)
         """
         super().__init__()
-        self.api_key = api_key
-        self.email = email
+        self.api_key = api_key  # Used as password
+        self.email = email      # Used as username
+        self.access_token = None
 
     def set_credentials(self, api_key, email):
         """Set API credentials."""
         self.api_key = api_key
         self.email = email
+        self.access_token = None  # Clear token when credentials change
+
+    def _get_access_token(self):
+        """
+        Get OAuth access token from ACLED.
+
+        :returns: Access token string or None if failed
+        """
+        if not self.email or not self.api_key:
+            return None
+
+        # Prepare OAuth request
+        post_data = urlencode({
+            'grant_type': 'password',
+            'client_id': 'acled',
+            'username': self.email,
+            'password': self.api_key
+        })
+
+        request = QNetworkRequest(QUrl(self.TOKEN_URL))
+        request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/x-www-form-urlencoded')
+
+        blocking = QgsBlockingNetworkRequest()
+        error = blocking.post(request, QByteArray(post_data.encode('utf-8')))
+
+        if error != QgsBlockingNetworkRequest.NoError:
+            self.error_occurred.emit(f"OAuth token request failed: {blocking.errorMessage()}")
+            return None
+
+        try:
+            response = json.loads(bytes(blocking.reply().content()))
+            self.access_token = response.get('access_token')
+            return self.access_token
+        except (json.JSONDecodeError, KeyError) as e:
+            self.error_occurred.emit(f"Failed to parse OAuth response: {str(e)}")
+            return None
 
     def get_event_types(self):
         """Get list of event types."""
@@ -117,16 +152,15 @@ class ACLEDClient(QObject):
         :param limit: Maximum number of events
         :returns: List of event dictionaries
         """
+        # Get access token if we have credentials
+        if self.email and self.api_key and not self.access_token:
+            self._get_access_token()
+
         # Build query parameters
         params = {
             'country': self.SUDAN_COUNTRY,
             'limit': limit
         }
-
-        # Add API credentials if available
-        if self.api_key and self.email:
-            params['key'] = self.api_key
-            params['email'] = self.email
 
         # Date filtering
         if start_date:
@@ -156,24 +190,59 @@ class ACLEDClient(QObject):
         request = QNetworkRequest(QUrl(url))
         request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/json')
 
+        # Add authorization header if we have a token
+        if self.access_token:
+            request.setRawHeader(b'Authorization', f'Bearer {self.access_token}'.encode())
+
         blocking = QgsBlockingNetworkRequest()
         error = blocking.get(request)
 
         if error != QgsBlockingNetworkRequest.NoError:
-            self.error_occurred.emit(f"API request failed: {blocking.errorMessage()}")
+            error_msg = blocking.errorMessage()
+            # Check if it's an auth error
+            if '401' in error_msg or 'Unauthorized' in error_msg:
+                self.error_occurred.emit(
+                    "ACLED API requires authentication. Please configure your API credentials in Settings.\n"
+                    "Register at: https://acleddata.com/register/"
+                )
+            else:
+                self.error_occurred.emit(f"API request failed: {error_msg}")
             return []
 
         try:
-            response = json.loads(bytes(blocking.reply().content()))
+            content = bytes(blocking.reply().content())
 
-            if response.get('success', False):
-                events = response.get('data', [])
-                self.data_loaded.emit(events)
-                return events
-            else:
-                error_msg = response.get('error', {}).get('message', 'Unknown error')
-                self.error_occurred.emit(f"ACLED API error: {error_msg}")
+            # Check if response is empty
+            if not content:
+                self.error_occurred.emit("Empty response from ACLED API. Please check your credentials.")
                 return []
+
+            response = json.loads(content)
+
+            # Handle different response formats
+            if isinstance(response, dict):
+                if response.get('success', False):
+                    events = response.get('data', [])
+                    self.data_loaded.emit(events)
+                    return events
+                elif 'error' in response:
+                    error_msg = response.get('error', {})
+                    if isinstance(error_msg, dict):
+                        error_msg = error_msg.get('message', 'Unknown error')
+                    self.error_occurred.emit(f"ACLED API error: {error_msg}")
+                    return []
+                elif 'data' in response:
+                    # Some responses have data without success flag
+                    events = response.get('data', [])
+                    self.data_loaded.emit(events)
+                    return events
+            elif isinstance(response, list):
+                # Direct list response
+                self.data_loaded.emit(response)
+                return response
+
+            self.error_occurred.emit("Unexpected response format from ACLED API")
+            return []
 
         except json.JSONDecodeError as e:
             self.error_occurred.emit(f"Failed to parse API response: {str(e)}")
