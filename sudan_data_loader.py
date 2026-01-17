@@ -407,7 +407,7 @@ class SudanDataLoader:
         self.search_panel.hide()
 
         # Advanced Search Panel (new in v3.0)
-        self.advanced_search_panel = AdvancedSearchPanel(self.iface, self.iface.mainWindow())
+        self.advanced_search_panel = AdvancedSearchPanel(self.iface, self.settings_manager, self.iface.mainWindow())
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.advanced_search_panel)
         self.advanced_search_panel.hide()
 
