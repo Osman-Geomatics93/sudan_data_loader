@@ -4,6 +4,9 @@ Custom QGIS Expression Functions for Sudan Data Loader.
 
 Provides Sudan-specific expression functions for use in field calculator,
 labeling, and styling.
+
+Note: Functions use register=False to prevent crashes during import.
+Call register_functions() during plugin initGui() to activate them.
 """
 
 from qgis.core import (
@@ -36,7 +39,7 @@ SUDAN_STATES = {
 }
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_state_name(pcode, feature, parent):
     """
     Get Sudan state name from P-Code.
@@ -57,7 +60,7 @@ def sudan_state_name(pcode, feature, parent):
     return None
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_state_name_ar(pcode, feature, parent):
     """
     Get Sudan state Arabic name from P-Code.
@@ -78,7 +81,7 @@ def sudan_state_name_ar(pcode, feature, parent):
     return None
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_state_capital(pcode, feature, parent):
     """
     Get Sudan state capital from P-Code.
@@ -99,7 +102,7 @@ def sudan_state_capital(pcode, feature, parent):
     return None
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_locality_count(state_name, feature, parent):
     """
     Count localities in a Sudan state.
@@ -141,7 +144,7 @@ def sudan_locality_count(state_name, feature, parent):
     return count
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_area_km2(feature, parent):
     """
     Calculate area in square kilometers (ellipsoidal).
@@ -172,7 +175,7 @@ def sudan_area_km2(feature, parent):
     return area_m2 / 1_000_000  # Convert to km²
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_perimeter_km(feature, parent):
     """
     Calculate perimeter in kilometers (ellipsoidal).
@@ -202,7 +205,7 @@ def sudan_perimeter_km(feature, parent):
     return perimeter_m / 1000  # Convert to km
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_is_darfur(state_name, feature, parent):
     """
     Check if a state is in Darfur region.
@@ -228,7 +231,7 @@ def sudan_is_darfur(state_name, feature, parent):
     return False
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[], register=False)
 def sudan_region(state_name, feature, parent):
     """
     Get the region for a Sudan state.
@@ -270,23 +273,31 @@ def sudan_region(state_name, feature, parent):
 
 def register_functions():
     """Register all Sudan expression functions."""
-    QgsExpression.registerFunction(sudan_state_name)
-    QgsExpression.registerFunction(sudan_state_name_ar)
-    QgsExpression.registerFunction(sudan_state_capital)
-    QgsExpression.registerFunction(sudan_locality_count)
-    QgsExpression.registerFunction(sudan_area_km2)
-    QgsExpression.registerFunction(sudan_perimeter_km)
-    QgsExpression.registerFunction(sudan_is_darfur)
-    QgsExpression.registerFunction(sudan_region)
+    try:
+        QgsExpression.registerFunction(sudan_state_name)
+        QgsExpression.registerFunction(sudan_state_name_ar)
+        QgsExpression.registerFunction(sudan_state_capital)
+        QgsExpression.registerFunction(sudan_locality_count)
+        QgsExpression.registerFunction(sudan_area_km2)
+        QgsExpression.registerFunction(sudan_perimeter_km)
+        QgsExpression.registerFunction(sudan_is_darfur)
+        QgsExpression.registerFunction(sudan_region)
+    except Exception:
+        # Silently fail if registration fails
+        pass
 
 
 def unregister_functions():
     """Unregister all Sudan expression functions."""
-    QgsExpression.unregisterFunction('sudan_state_name')
-    QgsExpression.unregisterFunction('sudan_state_name_ar')
-    QgsExpression.unregisterFunction('sudan_state_capital')
-    QgsExpression.unregisterFunction('sudan_locality_count')
-    QgsExpression.unregisterFunction('sudan_area_km2')
-    QgsExpression.unregisterFunction('sudan_perimeter_km')
-    QgsExpression.unregisterFunction('sudan_is_darfur')
-    QgsExpression.unregisterFunction('sudan_region')
+    try:
+        QgsExpression.unregisterFunction('sudan_state_name')
+        QgsExpression.unregisterFunction('sudan_state_name_ar')
+        QgsExpression.unregisterFunction('sudan_state_capital')
+        QgsExpression.unregisterFunction('sudan_locality_count')
+        QgsExpression.unregisterFunction('sudan_area_km2')
+        QgsExpression.unregisterFunction('sudan_perimeter_km')
+        QgsExpression.unregisterFunction('sudan_is_darfur')
+        QgsExpression.unregisterFunction('sudan_region')
+    except Exception:
+        # Silently fail if unregistration fails
+        pass
