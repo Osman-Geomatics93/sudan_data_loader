@@ -1,45 +1,97 @@
 [general]
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
-description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.3.5
+description=A comprehensive Sudan GIS toolkit with AI features, modern dashboard, and research tools for loading, visualizing, and analyzing administrative boundary data
+version=3.0.0
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
 about=A full-featured QGIS plugin for Sudan administrative data management and analysis.
 
-    === PHASE 1: Quick Wins ===
-    - Settings/Configuration Dialog with QSettings persistence
-    - Layer Selection Dialog with checkboxes and remember selection
-    - Quick Labeling Tools (English, Arabic, P-Codes)
-    - Style Preset Switcher (Default, Satellite-Friendly, Grayscale, Humanitarian)
-    - Data Info Panel showing version, feature counts, CRS, extent
+    === VERSION 3.0: MAJOR RELEASE ===
 
-    === PHASE 2: Core Features ===
-    - Search/Filter Panel with autocomplete (English & Arabic)
-    - Quick Navigation Bookmarks for all 18 states + custom bookmarks
-    - Statistics Panel with area calculations and CSV export
-    - Attribute Query Builder with visual interface
-    - Basemap Integration (OSM, Satellite, Humanitarian, CartoDB)
-    - Report Generation (HTML/PDF) - Summary and State Profiles
+    === NEW DATA SOURCES ===
+    - OpenStreetMap/Overpass API Integration
+      • Query POIs by category (hospitals, schools, roads)
+      • Custom Overpass queries for Sudan
+      • Real-time data fetching with caching
 
-    === PHASE 3: Advanced Features ===
-    - Export Features to GeoPackage, Shapefile, GeoJSON, KML, CSV, DXF
-    - Sketching/Drawing Tools (Points, Lines, Polygons)
-    - Processing Tools (Clip by State, Buffer, Dissolve, Intersection)
-    - Data Validation Checker (Geometry, Topology, Attributes)
+    - Sentinel Hub Satellite Imagery
+      • Browse Sentinel-2 imagery for Sudan
+      • Date range selection with cloud cover filter
+      • NDVI, true color, false color composites
 
-    === External Data Sources ===
-    - HDX (Humanitarian Data Exchange) Integration
-    - Browse and download Sudan humanitarian datasets
-    - Health facilities, roads, education, conflict data
-    - Direct layer loading from HDX
+    - World Bank Development Indicators
+      • Socio-economic indicators for Sudan
+      • GDP, population, health, education metrics
+      • Time series data visualization
 
-    - ACLED (Armed Conflict Location & Event Data) Integration
-    - Real-time conflict event tracking for Sudan
-    - Filter by date range, event type, region
-    - Styled visualization with categorized symbols
-    - Event statistics and detailed information
+    - NASA FIRMS Fire Data
+      • Real-time fire/hotspot detection
+      • Last 24h, 48h, 7 days options
+      • Automatic Sudan boundary clipping
+
+    - IOM Displacement Tracking
+      • Internal displacement data
+      • Population movement flows
+      • DTM (Displacement Tracking Matrix) data
+
+    === MODERN UI/DASHBOARD ===
+    - Main Dashboard Panel with KPI cards
+    - Interactive Charts (bar, pie, line)
+    - Dark Mode Support
+    - Modern Toast Notifications
+    - Enhanced Faceted Search with fuzzy matching
+
+    === QGIS DEEP INTEGRATION ===
+    - Processing Provider with Sudan-specific algorithms
+      • Clip by State
+      • Buffer Analysis
+      • Statistics Calculator
+      • Join Attributes
+    - Async Operations with QgsTask
+    - Credential Manager Integration
+    - Layer Tree Context Menu Integration
+    - Custom Expression Functions
+      • sudan_state_name(pcode)
+      • sudan_area_km2()
+      • sudan_is_darfur(state)
+      • sudan_region(state)
+
+    === AI/SMART FEATURES ===
+    - Natural Language Query Parser
+      • "Show all localities in Khartoum"
+      • "Find health facilities near conflict"
+    - Automated Report Generation with insights
+    - Anomaly Detection (Z-score, IQR methods)
+    - Predictive Analytics for conflict trends
+    - Smart Data Recommendations
+
+    === RESEARCH TOOLS ===
+    - Citation Generator (APA, BibTeX, Chicago, MLA)
+    - Data Provenance Tracking
+    - Spatial Statistics (Moran's I, Getis-Ord Gi*)
+    - Publication Export (journal templates)
+    - Project Templates for workflows
+
+    === EXISTING FEATURES ===
+    - HDX Humanitarian Data Integration
+    - ACLED Conflict Data Integration
+    - Settings/Configuration Dialog
+    - Layer Selection with remember option
+    - Quick Labeling Tools (English/Arabic/P-Codes)
+    - Style Preset Switcher
+    - Data Info Panel
+    - Search Panel with autocomplete
+    - Bookmarks Panel (18 states + custom)
+    - Statistics Panel with area calculations
+    - Query Builder Dialog
+    - Basemap Integration
+    - Report Generation (HTML/PDF)
+    - Export Dialog (multiple formats)
+    - Sketching Toolbar
+    - Processing Tools Integration
+    - Data Validation Checker
 
     Data layers included:
     - Admin 0: Country boundary
@@ -51,95 +103,73 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.3.5 - Bug Fixes & Improvements
-    - Fix critical missing import in Processing Tools (Clip by State now works)
-    - Fix ACLED date filtering to use proper API parameters
-    - Fix area calculations to use accurate ellipsoidal measurements
-    - Improve state profile report locality counting with fallback methods
-    - Fix QUrl import placement in HDX browser
-    - Improve error handling in settings manager
+changelog=3.0.0 - Major Feature Release
+    === NEW DATA SOURCES ===
+    - OpenStreetMap/Overpass API for POI queries
+    - Sentinel Hub satellite imagery browser
+    - World Bank development indicators
+    - NASA FIRMS fire/hotspot data
+    - IOM displacement tracking data
+
+    === MODERN UI ===
+    - Dashboard panel with KPI cards and activity log
+    - Interactive charts panel (matplotlib)
+    - Dark mode support with theme detection
+    - Toast-style notifications
+    - Advanced search with fuzzy matching
+
+    === QGIS INTEGRATION ===
+    - Processing Provider with 4 algorithms
+    - Async operations via QgsTask
+    - Secure credential storage
+    - Layer tree context menus
+    - Custom expression functions
+
+    === AI FEATURES ===
+    - Natural language query parser
+    - Smart report generator
+    - Anomaly detection
+    - Predictive analytics
+    - Data recommendations
+
+    === RESEARCH TOOLS ===
+    - Citation generator (5 formats)
+    - Data provenance tracking
+    - Spatial statistics (Moran's I, Gi*)
+    - Publication export (journal templates)
+    - Project workflow templates
+
+    2.3.5 - Bug Fixes & Improvements
+    - Fix critical missing import in Processing Tools
+    - Fix ACLED date filtering
+    - Fix area calculations
+    - Improve state profile report
+    - Fix QUrl import placement
 
     2.3.4 - ACLED API Working
-    - Fix ACLED API endpoint URL (now uses /api/acled/read)
-    - OAuth authentication working correctly
-    - Added debug logging for troubleshooting
-    - Note: Free accounts can only access data older than 12 months
-
-    2.3.3 - ACLED Credentials Clarification
-    - Clarify that ACLED uses account email/password (not separate API key)
-    - Update Settings dialog labels for clarity
-    - Improve instructions in API Keys tab
-    - Better status messages in ACLED browser
-
-    2.3.2 - ACLED API Fix
-    - Update to new ACLED OAuth-based API endpoint
-    - Fix API connection issues (old endpoint deprecated)
-    - Implement OAuth token authentication flow
-    - Add Bearer token authorization
-    - Improved error messages for authentication failures
-    - Note: ACLED now requires registration for all API access
-
-    2.3.1 - ACLED API Key Settings
-    - Add API Keys tab to Settings dialog
-    - Configure ACLED email and API key for full data access
-    - Show/hide API key toggle with password masking
-    - Auto-load credentials when opening ACLED browser
-    - API connection status indicator in ACLED header
-    - Link to ACLED registration page
+    - Fix ACLED API endpoint URL
+    - OAuth authentication working
 
     2.3.0 - ACLED Conflict Data Integration
     - ACLED browser dialog for Sudan conflict events
-    - Filter by date range (quick presets + custom)
-    - Filter by event type (Battles, Violence, Explosions, Riots, Protests)
-    - Filter by state/region
-    - Event statistics panel with fatality counts
-    - Event details view with full information
-    - Categorized symbol styling by event type
-    - Color-coded visualization
-    - Organized External Data Sources menu
+    - Filter by date, event type, region
+    - Categorized symbol styling
 
     2.2.0 - Welcome Wizard & UX Improvements
-    - Welcome Wizard for first-time users with guided setup
-    - HDX category filtering - filter by Health, Education, etc.
-    - Real-time text search filtering for datasets
-    - Clear filters button
-    - Improved layer loading stability
+    - Welcome Wizard for first-time users
+    - HDX category filtering
+    - Real-time text search
 
     2.1.0 - HDX Humanitarian Data Integration
-    - HDX browser dialog for Sudan humanitarian datasets
-    - Featured datasets: Health, Education, Roads, Conflict, POIs
-    - Search HDX for additional datasets
-    - Download and auto-load layers to QGIS
-    - Support for GeoJSON, Shapefile, GeoPackage, KML, CSV
+    - HDX browser dialog for Sudan datasets
+    - Featured datasets support
 
     2.0.0 - Major Feature Release
-    === New Features ===
-    - Settings dialog with persistent configuration
-    - Layer selection dialog with remember option
-    - Quick labeling tools (English/Arabic/P-Codes)
-    - Style preset switcher (4 themes)
-    - Data info dock panel
-    - Search panel with autocomplete
-    - Bookmarks panel (18 states + custom)
-    - Statistics panel with area calculations
-    - Query builder dialog
-    - Basemap integration (7 basemap options)
-    - Report generation (HTML/PDF)
-    - Export dialog (6 formats)
-    - Sketching toolbar
-    - Processing tools integration
-    - Data validation checker
+    - Complete plugin redesign with modular architecture
 
-    === Improvements ===
-    - Modular architecture with separate packages
-    - Improved menu organization with submenus
-    - Toolbar with quick access buttons
-    - Better error handling
-
-    1.0.1 - Bug fixes and stability improvements
     1.0.0 - Initial release
 
-tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching,hdx,humanitarian,health,education,acled,conflict,crisis
+tags=sudan,administrative,boundaries,geopackage,vector,africa,download,search,bookmarks,statistics,export,labeling,basemap,validation,processing,sketching,hdx,humanitarian,health,education,acled,conflict,crisis,osm,satellite,sentinel,worldbank,firms,fire,iom,displacement,dashboard,charts,darkmode,ai,nlp,research,citations,provenance,spatial-statistics
 
 homepage=https://github.com/Osman-Geomatics93/sudan_data_loader
 category=Vector
@@ -147,5 +177,5 @@ icon=icon.png
 experimental=False
 deprecated=False
 server=False
-hasProcessingProvider=no
+hasProcessingProvider=yes
 license=GPLv3

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Sudan Data Loader - Main Plugin Class
+Sudan Data Loader - Main Plugin Class (v3.0)
 
 A comprehensive QGIS plugin for loading, visualizing, and analyzing
-Sudan administrative boundary data.
+Sudan administrative boundary data with AI features, modern dashboard,
+and research tools.
 
 Features:
 - Load administrative boundaries with automatic styling
@@ -21,6 +22,22 @@ Features:
 - Data validation checker
 - HDX Humanitarian Data integration
 - ACLED Conflict Data integration
+
+v3.0 New Features:
+- OpenStreetMap/Overpass API integration
+- Sentinel Hub satellite imagery
+- World Bank development indicators
+- NASA FIRMS fire data
+- IOM displacement tracking
+- Modern dashboard with KPI cards
+- Interactive charts panel
+- Dark mode support
+- AI-powered natural language query
+- Smart report generation
+- Anomaly detection
+- Predictive analytics
+- Research tools (citations, provenance, statistics)
+- Publication export
 """
 
 import os
@@ -35,7 +52,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtCore import QStandardPaths, QUrl, QEventLoop, Qt
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsNetworkAccessManager,
-    QgsBlockingNetworkRequest
+    QgsBlockingNetworkRequest, QgsApplication
 )
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
 
@@ -44,6 +61,13 @@ from .core.settings_manager import SettingsManager
 from .core.data_manager import DataManager
 from .core.labeling_utils import LabelingUtils
 from .core.style_manager import StyleManager
+
+# Import new v3.0 core modules
+from .core.theme_manager import ThemeManager
+from .core.notification_manager import NotificationManager
+from .core.credential_manager import CredentialManager
+from .core.layer_tree_integration import LayerTreeIntegration
+from .core import expression_functions
 
 # Import dialogs
 from .dialogs.settings_dialog import SettingsDialog
@@ -58,11 +82,17 @@ from .widgets.search_panel import SearchPanel
 from .widgets.bookmarks_panel import BookmarksPanel
 from .widgets.statistics_panel import StatisticsPanel
 
+# Import new v3.0 widgets
+from .widgets.dashboard_panel import DashboardPanel
+from .widgets.charts_panel import ChartsPanel
+from .widgets.advanced_search_panel import AdvancedSearchPanel
+
 # Import tools
 from .tools.sketching_tools import SketchingToolbar
 
 # Import processing
 from .processing.sudan_processing_tools import ProcessingDialog
+from .processing.sudan_provider import SudanProcessingProvider
 
 # Import reports
 from .reports.report_generator import ReportDialog
@@ -75,6 +105,21 @@ from .hdx.hdx_browser import HDXBrowserDialog
 
 # Import ACLED integration
 from .acled.acled_browser import ACLEDBrowserDialog
+
+# Import new v3.0 data sources
+from .osm.osm_browser import OSMBrowserDialog
+from .satellite.sentinel_browser import SentinelBrowserDialog
+from .worldbank.wb_browser import WorldBankBrowserDialog
+from .firms.firms_browser import FIRMSBrowserDialog
+from .iom.iom_browser import IOMBrowserDialog
+
+# Import AI features
+from .ai.nl_query import NLQueryDialog
+
+# Import research tools
+from .research.citation_generator import CitationGenerator
+from .research.statistics import SpatialStatistics
+from .research.publication_export import PublicationExporter
 
 
 class SudanDataLoader:
@@ -106,10 +151,25 @@ class SudanDataLoader:
         self.data_manager = None
         self.style_manager = None
 
+        # New v3.0 attributes
+        self.dashboard_panel = None
+        self.charts_panel = None
+        self.advanced_search_panel = None
+        self.theme_manager = None
+        self.notification_manager = None
+        self.credential_manager = None
+        self.layer_tree_integration = None
+        self.processing_provider = None
+
         # Initialize managers
         self.settings_manager = SettingsManager()
         self.data_manager = DataManager(None, None)
         self.style_manager = StyleManager(self.plugin_dir)
+
+        # Initialize new v3.0 managers
+        self.theme_manager = ThemeManager()
+        self.notification_manager = NotificationManager(iface)
+        self.credential_manager = CredentialManager()
 
         # Bundled data directories (fallback)
         self.bundled_data_dir = os.path.join(self.plugin_dir, 'Data')
@@ -207,24 +267,42 @@ class SudanDataLoader:
         # === Panels Section ===
         panels_menu = QMenu('Panels', self.menu)
 
+        self._create_action('panel_dashboard', 'Dashboard Panel', self.toggle_dashboard_panel, panels_menu)
+        self._create_action('panel_charts', 'Charts Panel', self.toggle_charts_panel, panels_menu)
         self._create_action('panel_info', 'Data Info Panel', self.toggle_data_info_panel, panels_menu)
         self._create_action('panel_search', 'Search Panel', self.toggle_search_panel, panels_menu)
+        self._create_action('panel_advanced_search', 'Advanced Search Panel', self.toggle_advanced_search_panel, panels_menu)
         self._create_action('panel_bookmarks', 'Bookmarks Panel', self.toggle_bookmarks_panel, panels_menu)
         self._create_action('panel_statistics', 'Statistics Panel', self.toggle_statistics_panel, panels_menu)
 
         self.menu.addMenu(panels_menu)
         self.menu.addSeparator()
 
-        # === Tools Section ===
-        self._create_action('query_builder', 'Query Builder...', self.show_query_builder)
-        self._create_action('export', 'Export Features...', self.show_export_dialog)
-        self._create_action('processing', 'Processing Tools...', self.show_processing_dialog)
-        self._create_action('sketching', 'Show Sketching Toolbar', self.toggle_sketching_toolbar)
-        self.menu.addSeparator()
+        # === Analysis Tools Section ===
+        analysis_menu = QMenu('Analysis Tools', self.menu)
 
-        # === Reports & Validation ===
-        self._create_action('report', 'Generate Report...', self.show_report_dialog)
-        self._create_action('validate', 'Validate Data...', self.show_validation_dialog)
+        self._create_action('query_builder', 'Query Builder...', self.show_query_builder, analysis_menu)
+        self._create_action('processing', 'Processing Tools...', self.show_processing_dialog, analysis_menu)
+        self._create_action('ai_query', 'AI Natural Language Query...', self.show_ai_query_dialog, analysis_menu)
+        analysis_menu.addSeparator()
+        self._create_action('spatial_stats', 'Spatial Statistics...', self.show_spatial_statistics, analysis_menu)
+
+        self.menu.addMenu(analysis_menu)
+
+        # === Reports & Export ===
+        reports_menu = QMenu('Reports && Export', self.menu)
+
+        self._create_action('report', 'Generate Report...', self.show_report_dialog, reports_menu)
+        self._create_action('export', 'Export Features...', self.show_export_dialog, reports_menu)
+        reports_menu.addSeparator()
+        self._create_action('publication_export', 'Publication Export...', self.show_publication_export, reports_menu)
+        self._create_action('citation_gen', 'Generate Citations...', self.show_citation_generator, reports_menu)
+
+        self.menu.addMenu(reports_menu)
+
+        # === Data Validation ===
+        self._create_action('validate', 'Data Validation...', self.show_validation_dialog)
+        self._create_action('sketching', 'Sketching Toolbar', self.toggle_sketching_toolbar)
         self.menu.addSeparator()
 
         # === External Data Sources ===
@@ -234,12 +312,24 @@ class SudanDataLoader:
                            self.show_hdx_browser, external_data_menu)
         self._create_action('acled_browser', 'ACLED Conflict Data...',
                            self.show_acled_browser, external_data_menu)
+        external_data_menu.addSeparator()
+        self._create_action('osm_browser', 'OpenStreetMap Data...',
+                           self.show_osm_browser, external_data_menu)
+        self._create_action('sentinel_browser', 'Sentinel Satellite Imagery...',
+                           self.show_sentinel_browser, external_data_menu)
+        self._create_action('worldbank_browser', 'World Bank Indicators...',
+                           self.show_worldbank_browser, external_data_menu)
+        self._create_action('firms_browser', 'NASA FIRMS Fire Data...',
+                           self.show_firms_browser, external_data_menu)
+        self._create_action('iom_browser', 'IOM Displacement Data...',
+                           self.show_iom_browser, external_data_menu)
 
         self.menu.addMenu(external_data_menu)
         self.menu.addSeparator()
 
         # === Help & Settings ===
         self._create_action('welcome_wizard', 'Welcome Wizard...', self.show_welcome_wizard)
+        self._create_action('toggle_dark_mode', 'Toggle Dark Mode', self.toggle_dark_mode)
         self._create_action('settings', 'Settings...', self.show_settings)
 
         # Create toolbar
@@ -250,14 +340,27 @@ class SudanDataLoader:
         self.toolbar.addAction(self.actions['load_data'])
         self.toolbar.addAction(self.actions['download_update'])
         self.toolbar.addSeparator()
+        self.toolbar.addAction(self.actions['panel_dashboard'])
         self.toolbar.addAction(self.actions['panel_search'])
         self.toolbar.addAction(self.actions['panel_bookmarks'])
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.actions['ai_query'])
 
         # Initialize dock widgets (hidden by default)
         self._init_dock_widgets()
 
         # Initialize sketching toolbar (hidden by default)
         self.sketching_toolbar = SketchingToolbar(self.iface)
+
+        # Register Processing Provider
+        self.processing_provider = SudanProcessingProvider()
+        QgsApplication.processingRegistry().addProvider(self.processing_provider)
+
+        # Register custom expression functions
+        expression_functions.register_functions()
+
+        # Initialize layer tree integration
+        self.layer_tree_integration = LayerTreeIntegration(self.iface)
 
         # Show welcome wizard on first run (use QTimer to show after QGIS fully loads)
         from qgis.PyQt.QtCore import QTimer
@@ -283,6 +386,16 @@ class SudanDataLoader:
 
     def _init_dock_widgets(self):
         """Initialize dock widgets."""
+        # Dashboard Panel (new in v3.0)
+        self.dashboard_panel = DashboardPanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dashboard_panel)
+        self.dashboard_panel.hide()
+
+        # Charts Panel (new in v3.0)
+        self.charts_panel = ChartsPanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.charts_panel)
+        self.charts_panel.hide()
+
         # Data Info Panel
         self.data_info_panel = DataInfoPanel(self.iface.mainWindow())
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.data_info_panel)
@@ -292,6 +405,11 @@ class SudanDataLoader:
         self.search_panel = SearchPanel(self.iface, self.iface.mainWindow())
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.search_panel)
         self.search_panel.hide()
+
+        # Advanced Search Panel (new in v3.0)
+        self.advanced_search_panel = AdvancedSearchPanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.advanced_search_panel)
+        self.advanced_search_panel.hide()
 
         # Bookmarks Panel
         self.bookmarks_panel = BookmarksPanel(self.iface, self.settings_manager, self.iface.mainWindow())
@@ -305,6 +423,28 @@ class SudanDataLoader:
 
     def unload(self):
         """Remove the plugin menu items and icons from QGIS GUI."""
+        # Unregister Processing Provider
+        processing_provider = getattr(self, 'processing_provider', None)
+        if processing_provider:
+            try:
+                QgsApplication.processingRegistry().removeProvider(processing_provider)
+            except Exception:
+                pass
+
+        # Unregister custom expression functions
+        try:
+            expression_functions.unregister_functions()
+        except Exception:
+            pass
+
+        # Remove layer tree integration
+        layer_tree_integration = getattr(self, 'layer_tree_integration', None)
+        if layer_tree_integration:
+            try:
+                layer_tree_integration.unregister()
+            except Exception:
+                pass
+
         # Remove menu (use getattr for safety)
         menu = getattr(self, 'menu', None)
         if menu:
@@ -322,6 +462,20 @@ class SudanDataLoader:
                 pass
 
         # Remove dock widgets
+        dashboard_panel = getattr(self, 'dashboard_panel', None)
+        if dashboard_panel:
+            try:
+                self.iface.removeDockWidget(dashboard_panel)
+            except Exception:
+                pass
+
+        charts_panel = getattr(self, 'charts_panel', None)
+        if charts_panel:
+            try:
+                self.iface.removeDockWidget(charts_panel)
+            except Exception:
+                pass
+
         data_info_panel = getattr(self, 'data_info_panel', None)
         if data_info_panel:
             try:
@@ -333,6 +487,13 @@ class SudanDataLoader:
         if search_panel:
             try:
                 self.iface.removeDockWidget(search_panel)
+            except Exception:
+                pass
+
+        advanced_search_panel = getattr(self, 'advanced_search_panel', None)
+        if advanced_search_panel:
+            try:
+                self.iface.removeDockWidget(advanced_search_panel)
             except Exception:
                 pass
 
@@ -360,6 +521,21 @@ class SudanDataLoader:
 
     # ============ Panel Toggles ============
 
+    def toggle_dashboard_panel(self):
+        """Toggle the dashboard panel visibility."""
+        if self.dashboard_panel.isVisible():
+            self.dashboard_panel.hide()
+        else:
+            self.dashboard_panel.show()
+            self.dashboard_panel.refresh_data()
+
+    def toggle_charts_panel(self):
+        """Toggle the charts panel visibility."""
+        if self.charts_panel.isVisible():
+            self.charts_panel.hide()
+        else:
+            self.charts_panel.show()
+
     def toggle_data_info_panel(self):
         """Toggle the data info panel visibility."""
         if self.data_info_panel.isVisible():
@@ -374,6 +550,13 @@ class SudanDataLoader:
             self.search_panel.hide()
         else:
             self.search_panel.show()
+
+    def toggle_advanced_search_panel(self):
+        """Toggle the advanced search panel visibility."""
+        if self.advanced_search_panel.isVisible():
+            self.advanced_search_panel.hide()
+        else:
+            self.advanced_search_panel.show()
 
     def toggle_bookmarks_panel(self):
         """Toggle the bookmarks panel visibility."""
@@ -395,6 +578,15 @@ class SudanDataLoader:
             self.sketching_toolbar.remove_toolbar()
         else:
             self.sketching_toolbar.setup_toolbar()
+
+    def toggle_dark_mode(self):
+        """Toggle dark mode."""
+        is_dark = self.theme_manager.toggle_dark_mode()
+        mode = "Dark" if is_dark else "Light"
+        self.notification_manager.show_notification(
+            f"{mode} mode enabled",
+            "info"
+        )
 
     # ============ Dialog Methods ============
 
@@ -510,6 +702,173 @@ class SudanDataLoader:
                     self.iface.mainWindow(),
                     'Layer Load Failed',
                     f"Failed to load {len(failed)} layer(s):\n" + "\n".join(failed)
+                )
+
+    # ============ New v3.0 Data Source Dialogs ============
+
+    def show_osm_browser(self):
+        """Show the OpenStreetMap data browser dialog."""
+        dialog = OSMBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_sentinel_browser(self):
+        """Show the Sentinel satellite imagery browser dialog."""
+        dialog = SentinelBrowserDialog(self.iface, self.credential_manager, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_worldbank_browser(self):
+        """Show the World Bank indicators browser dialog."""
+        dialog = WorldBankBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_firms_browser(self):
+        """Show the NASA FIRMS fire data browser dialog."""
+        dialog = FIRMSBrowserDialog(self.iface, self.credential_manager, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_iom_browser(self):
+        """Show the IOM displacement data browser dialog."""
+        dialog = IOMBrowserDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    # ============ New v3.0 Analysis Dialogs ============
+
+    def show_ai_query_dialog(self):
+        """Show the AI natural language query dialog."""
+        dialog = NLQueryDialog(self.iface, self.iface.mainWindow())
+        dialog.exec_()
+
+    def show_spatial_statistics(self):
+        """Show spatial statistics options."""
+        from qgis.PyQt.QtWidgets import QInputDialog
+        layer = self.iface.activeLayer()
+        if not layer:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                'No Layer Selected',
+                'Please select a layer to analyze.'
+            )
+            return
+
+        # Get numeric fields
+        numeric_fields = [f.name() for f in layer.fields()
+                        if f.type() in [2, 4, 6]]  # Int, Double, LongLong
+
+        if not numeric_fields:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                'No Numeric Fields',
+                'The selected layer has no numeric fields for analysis.'
+            )
+            return
+
+        field, ok = QInputDialog.getItem(
+            self.iface.mainWindow(),
+            'Select Field',
+            'Choose a field for spatial statistics:',
+            numeric_fields, 0, False
+        )
+
+        if ok and field:
+            stats = SpatialStatistics()
+            result = stats.calculate_morans_i(layer, field)
+
+            if 'error' in result:
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    'Analysis Error',
+                    result['error']
+                )
+            else:
+                msg = f"Moran's I Spatial Autocorrelation\n"
+                msg += f"=" * 40 + "\n\n"
+                msg += f"Field: {field}\n"
+                msg += f"Features: {result['n_features']}\n\n"
+                msg += f"Moran's I: {result['morans_i']:.4f}\n"
+                msg += f"Expected I: {result['expected_i']:.4f}\n"
+                msg += f"Z-Score: {result['z_score']:.4f}\n"
+                msg += f"P-Value: {result['p_value']:.4f}\n\n"
+                msg += f"Result: {result['interpretation']}"
+
+                QMessageBox.information(
+                    self.iface.mainWindow(),
+                    'Spatial Statistics Results',
+                    msg
+                )
+
+    # ============ New v3.0 Research Dialogs ============
+
+    def show_publication_export(self):
+        """Show publication export options."""
+        from qgis.PyQt.QtWidgets import QInputDialog, QFileDialog
+
+        templates = ['nature', 'plos_one', 'elsevier', 'springer', 'mdpi', 'thesis', 'poster']
+        template, ok = QInputDialog.getItem(
+            self.iface.mainWindow(),
+            'Select Template',
+            'Choose a publication template:',
+            templates, 0, False
+        )
+
+        if ok:
+            output_path, _ = QFileDialog.getSaveFileName(
+                self.iface.mainWindow(),
+                'Export Map',
+                '',
+                'PNG (*.png);;PDF (*.pdf);;TIFF (*.tiff);;SVG (*.svg)'
+            )
+
+            if output_path:
+                exporter = PublicationExporter()
+                result = exporter.export_map(
+                    output_path,
+                    title='Sudan Map',
+                    template=template
+                )
+
+                if result.get('success'):
+                    QMessageBox.information(
+                        self.iface.mainWindow(),
+                        'Export Complete',
+                        f"Map exported successfully to:\n{result['output_path']}"
+                    )
+                else:
+                    QMessageBox.warning(
+                        self.iface.mainWindow(),
+                        'Export Failed',
+                        'Failed to export map. Check the console for details.'
+                    )
+
+    def show_citation_generator(self):
+        """Show citation generator dialog."""
+        from qgis.PyQt.QtWidgets import QInputDialog
+
+        sources = ['hdx_admin', 'acled', 'osm', 'worldbank', 'sentinel', 'firms', 'iom_dtm']
+        formats = ['apa', 'bibtex', 'chicago', 'harvard', 'mla']
+
+        source, ok1 = QInputDialog.getItem(
+            self.iface.mainWindow(),
+            'Select Data Source',
+            'Choose a data source to cite:',
+            sources, 0, False
+        )
+
+        if ok1:
+            fmt, ok2 = QInputDialog.getItem(
+                self.iface.mainWindow(),
+                'Select Format',
+                'Choose citation format:',
+                formats, 0, False
+            )
+
+            if ok2:
+                generator = CitationGenerator()
+                citation = generator.generate_citation(source, fmt)
+
+                QMessageBox.information(
+                    self.iface.mainWindow(),
+                    'Citation Generated',
+                    f"Citation ({fmt.upper()}):\n\n{citation}"
                 )
 
     # ============ Data Loading Methods ============
