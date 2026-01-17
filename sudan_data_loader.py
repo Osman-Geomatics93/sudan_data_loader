@@ -711,6 +711,44 @@ class SudanDataLoader:
         dialog = OSMBrowserDialog(self.iface, self.iface.mainWindow())
         dialog.exec_()
 
+        # Add any pending layers after dialog closes
+        pending = dialog.get_pending_layers()
+        if pending:
+            added = []
+            failed = []
+            for layer_info in pending:
+                success, result = dialog.add_layer_to_map(
+                    layer_info['file_path'],
+                    layer_info['layer_name'],
+                    layer_info['layer_type'],
+                    layer_info['category']
+                )
+                if success:
+                    added.append(result)
+                else:
+                    failed.append(result)
+
+            # Show summary
+            if added:
+                self.iface.messageBar().pushMessage(
+                    'OSM Data',
+                    f'Added {len(added)} layer(s): {", ".join(added)}',
+                    level=0, duration=5
+                )
+            if failed:
+                self.iface.messageBar().pushMessage(
+                    'OSM Data',
+                    f'Failed to add: {", ".join(failed)}',
+                    level=1, duration=5
+                )
+
+            # Zoom to last added layer
+            if added:
+                layers = QgsProject.instance().mapLayersByName(added[-1])
+                if layers:
+                    self.iface.mapCanvas().setExtent(layers[0].extent())
+                    self.iface.mapCanvas().refresh()
+
     def show_sentinel_browser(self):
         """Show the Sentinel satellite imagery browser dialog."""
         dialog = SentinelBrowserDialog(self.iface, self.credential_manager, self.iface.mainWindow())
