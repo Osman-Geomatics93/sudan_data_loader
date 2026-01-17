@@ -224,13 +224,14 @@ class OSMClient(QObject):
         """Get bounding box for a state."""
         return self.SUDAN_STATES.get(state_name, self.SUDAN_BBOX)
 
-    def _build_overpass_query(self, tags_list, bbox, geometry_type='nwr'):
+    def _build_overpass_query(self, tags_list, bbox, geometry_type='nwr', need_geometry=False):
         """
         Build an Overpass QL query.
 
         :param tags_list: List of (key, value) tuples for tag filters
         :param bbox: Bounding box dict with south, west, north, east
         :param geometry_type: 'node', 'way', 'relation', or 'nwr' (all)
+        :param need_geometry: If True, return full geometry for ways (for lines/polygons)
         :returns: Overpass QL query string
         """
         bbox_str = f"{bbox['south']},{bbox['west']},{bbox['north']},{bbox['east']}"
@@ -242,12 +243,17 @@ class OSMClient(QObject):
 
         query_body = '\n'.join(tag_queries)
 
-        # Simple query format that works reliably
+        # Use 'out geom' for lines/polygons to get full geometry, 'out center' for points
+        if need_geometry:
+            output_mode = "out geom;"
+        else:
+            output_mode = "out center;"
+
         query = f"""[out:json][timeout:90];
 (
 {query_body}
 );
-out center;"""
+{output_mode}"""
         return query
 
     def _execute_query(self, query):
@@ -387,8 +393,9 @@ out center;"""
             self.query_progress.emit("Warning: Querying all of Sudan may be slow...")
             bbox = self.SUDAN_BBOX
 
-        # Build and execute query
-        query = self._build_overpass_query(tags, bbox, osm_type)
+        # Build and execute query - use need_geometry=True for lines/polygons
+        need_geometry = geom_type in ('line', 'polygon')
+        query = self._build_overpass_query(tags, bbox, osm_type, need_geometry=need_geometry)
         self.query_progress.emit(f"Fetching {category}...")
 
         result = self._execute_query(query)
@@ -459,17 +466,26 @@ out center;"""
 
             elif elem_type == 'way':
                 # Line or polygon feature
-                node_ids = element.get('nodes', [])
                 coords = []
-                for node_id in node_ids:
-                    if node_id in nodes:
-                        node = nodes[node_id]
-                        if node['lat'] is not None and node['lon'] is not None:
-                            coords.append([node['lon'], node['lat']])
+
+                # Check for geometry array (from 'out geom;')
+                geom_array = element.get('geometry', [])
+                if geom_array:
+                    for point in geom_array:
+                        if point.get('lat') is not None and point.get('lon') is not None:
+                            coords.append([point['lon'], point['lat']])
+                else:
+                    # Fall back to nodes array (from 'out;' or 'out skel;')
+                    node_ids = element.get('nodes', [])
+                    for node_id in node_ids:
+                        if node_id in nodes:
+                            node = nodes[node_id]
+                            if node['lat'] is not None and node['lon'] is not None:
+                                coords.append([node['lon'], node['lat']])
 
                 if len(coords) >= 2:
-                    # Check if it's a closed way (polygon)
-                    is_closed = (node_ids[0] == node_ids[-1]) if len(node_ids) > 2 else False
+                    # Check if it's a closed way (polygon) by comparing first and last coordinates
+                    is_closed = (coords[0] == coords[-1]) if len(coords) > 2 else False
                     tags = element.get('tags', {})
 
                     # Determine if it should be a polygon
