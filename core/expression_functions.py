@@ -141,7 +141,7 @@ def sudan_locality_count(state_name, feature, parent):
     return count
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[QgsExpression.allAttributeNames()])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
 def sudan_area_km2(feature, parent):
     """
     Calculate area in square kilometers (ellipsoidal).
@@ -172,7 +172,7 @@ def sudan_area_km2(feature, parent):
     return area_m2 / 1_000_000  # Convert to km²
 
 
-@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[QgsExpression.allAttributeNames()])
+@qgsfunction(args='auto', group='Sudan Data', referenced_columns=[])
 def sudan_perimeter_km(feature, parent):
     """
     Calculate perimeter in kilometers (ellipsoidal).
