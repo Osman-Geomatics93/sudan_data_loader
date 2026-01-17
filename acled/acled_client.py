@@ -179,19 +179,19 @@ class ACLEDClient(QObject):
             'limit': limit
         }
 
-        # Date filtering
-        if start_date:
+        # Date filtering - ACLED API uses separate start/end date parameters
+        if start_date and end_date:
+            # For date range, use both parameters
             params['event_date'] = start_date
             params['event_date_where'] = '>='
-
-        if end_date:
-            if 'event_date' in params:
-                # Need to use different approach for date range
-                params['event_date'] = f"{start_date}|{end_date}"
-                params['event_date_where'] = 'BETWEEN'
-            else:
-                params['event_date'] = end_date
-                params['event_date_where'] = '<='
+            params['event_date_end'] = end_date
+            params['event_date_end_where'] = '<='
+        elif start_date:
+            params['event_date'] = start_date
+            params['event_date_where'] = '>='
+        elif end_date:
+            params['event_date'] = end_date
+            params['event_date_where'] = '<='
 
         # Event type filtering
         if event_types and len(event_types) > 0:

@@ -2,7 +2,7 @@
 
 A comprehensive QGIS plugin for loading, visualizing, and analyzing Sudan administrative boundary data with integrated humanitarian and conflict data sources.
 
-## Version 2.3.4
+## Version 2.3.5
 
 ## Features
 

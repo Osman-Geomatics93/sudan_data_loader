@@ -2,7 +2,7 @@
 name=Sudan Data Loader
 qgisMinimumVersion=3.0
 description=A comprehensive Sudan GIS toolkit for loading, visualizing, and analyzing administrative boundary data
-version=2.3.4
+version=2.3.5
 author=Osman Ibrahim
 email=osmangeomatics93@gmail.com
 
@@ -51,7 +51,15 @@ about=A full-featured QGIS plugin for Sudan administrative data management and a
 tracker=https://github.com/Osman-Geomatics93/sudan_data_loader/issues
 repository=https://github.com/Osman-Geomatics93/sudan_data_loader
 
-changelog=2.3.4 - ACLED API Working
+changelog=2.3.5 - Bug Fixes & Improvements
+    - Fix critical missing import in Processing Tools (Clip by State now works)
+    - Fix ACLED date filtering to use proper API parameters
+    - Fix area calculations to use accurate ellipsoidal measurements
+    - Improve state profile report locality counting with fallback methods
+    - Fix QUrl import placement in HDX browser
+    - Improve error handling in settings manager
+
+    2.3.4 - ACLED API Working
     - Fix ACLED API endpoint URL (now uses /api/acled/read)
     - OAuth authentication working correctly
     - Added debug logging for troubleshooting

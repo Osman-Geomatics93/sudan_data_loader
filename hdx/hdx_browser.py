@@ -16,7 +16,7 @@ from qgis.PyQt.QtWidgets import (
     QSplitter, QGroupBox, QCheckBox, QFrame, QToolButton,
     QSizePolicy, QApplication
 )
-from qgis.PyQt.QtCore import Qt, QSize, QThread, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QSize, QThread, pyqtSignal, QUrl
 from qgis.PyQt.QtGui import QIcon, QColor, QFont, QDesktopServices
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer,
@@ -562,7 +562,3 @@ class HDXBrowserDialog(QDialog):
             self.download_thread.terminate()
             self.download_thread.wait()
         super().closeEvent(event)
-
-
-# Import QUrl for link handling
-from qgis.PyQt.QtCore import QUrl

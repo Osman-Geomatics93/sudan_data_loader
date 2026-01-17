@@ -139,18 +139,33 @@ class ReportGenerator:
         # Count localities
         locality_count = 0
         if localities_layer:
+            # Try to find matching pcode field in localities layer
             pcode_field = None
-            for field_name in ['ADM1_PCODE', 'admin1Pcode']:
+            for field_name in ['ADM1_PCODE', 'admin1Pcode', 'ADM1PCODE']:
                 if field_name in [f.name() for f in localities_layer.fields()]:
                     pcode_field = field_name
                     break
 
-            if pcode_field:
-                state_pcode = state_feature['ADM1_PCODE'] if 'ADM1_PCODE' in [f.name() for f in states_layer.fields()] else None
-                if state_pcode:
-                    for feature in localities_layer.getFeatures():
-                        if feature[pcode_field] == state_pcode:
-                            locality_count += 1
+            # Try to get state pcode from state feature
+            state_pcode = None
+            for field_name in ['ADM1_PCODE', 'admin1Pcode', 'ADM1PCODE']:
+                if field_name in [f.name() for f in states_layer.fields()]:
+                    state_pcode = state_feature[field_name]
+                    break
+
+            if pcode_field and state_pcode:
+                # Match by pcode (case-insensitive)
+                state_pcode_upper = str(state_pcode).upper().strip()
+                for feature in localities_layer.getFeatures():
+                    loc_pcode = feature[pcode_field]
+                    if loc_pcode and str(loc_pcode).upper().strip() == state_pcode_upper:
+                        locality_count += 1
+            elif state_feature.geometry():
+                # Fallback: count localities that intersect with state geometry
+                state_geom = state_feature.geometry()
+                for feature in localities_layer.getFeatures():
+                    if feature.geometry() and feature.geometry().intersects(state_geom):
+                        locality_count += 1
 
         return {
             'name': state_name,

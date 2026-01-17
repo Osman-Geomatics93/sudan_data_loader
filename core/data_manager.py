@@ -8,7 +8,8 @@ Handles data loading, style application, and layer management.
 import os
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsRasterLayer,
-    QgsCoordinateReferenceSystem, QgsCoordinateTransform
+    QgsCoordinateReferenceSystem, QgsCoordinateTransform,
+    QgsDistanceArea
 )
 
 
@@ -247,14 +248,19 @@ class DataManager:
             'selected_count': layer.selectedFeatureCount(),
         }
 
-        # Calculate total area for polygon layers
+        # Calculate total area for polygon layers using ellipsoidal calculation
         if layer.geometryType() == 2:  # Polygon
             total_area = 0
+            # Set up distance area calculator for accurate measurements
+            distance_area = QgsDistanceArea()
+            distance_area.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
+            distance_area.setEllipsoid('WGS84')
+
             for feature in layer.getFeatures():
                 geom = feature.geometry()
-                if geom:
-                    # Transform to appropriate CRS for area calculation
-                    area_calc = geom.area()
+                if geom and not geom.isNull():
+                    # Use ellipsoidal area calculation
+                    area_calc = distance_area.measureArea(geom)
                     total_area += area_calc
             stats['total_area_sq_km'] = total_area / 1_000_000  # Convert to sq km
 

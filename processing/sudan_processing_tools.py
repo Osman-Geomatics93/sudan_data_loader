@@ -14,7 +14,8 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsProcessingFeedback,
-    QgsVectorFileWriter, QgsCoordinateTransformContext
+    QgsVectorFileWriter, QgsCoordinateTransformContext,
+    QgsProcessingUtils
 )
 import processing
 

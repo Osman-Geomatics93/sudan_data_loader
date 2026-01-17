@@ -145,7 +145,7 @@ class SettingsManager:
             import json
             try:
                 return json.loads(value) if value else []
-            except:
+            except (json.JSONDecodeError, ValueError, TypeError):
                 return []
         return value if value else []
 
