@@ -8,9 +8,9 @@ Provides access to OpenStreetMap data via Overpass API for Sudan.
 import json
 import os
 import tempfile
-from urllib.parse import urlencode
+from urllib.parse import quote
 
-from qgis.PyQt.QtCore import QUrl, QObject, pyqtSignal
+from qgis.PyQt.QtCore import QUrl, QObject, pyqtSignal, QByteArray
 from qgis.core import QgsBlockingNetworkRequest, QgsMessageLog, Qgis
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -22,7 +22,7 @@ class OSMClient(QObject):
     OVERPASS_ENDPOINTS = [
         "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
-        "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+        "https://lz4.overpass-api.de/api/interpreter",
     ]
 
     # Sudan bounding box (approximate)
@@ -58,109 +58,109 @@ class OSMClient(QObject):
     # POI categories with Overpass tags
     POI_CATEGORIES = {
         'Hospitals': {
-            'tags': 'amenity=hospital',
+            'tags': [('amenity', 'hospital')],
             'color': '#e74c3c',
             'icon': 'cross',
             'description': 'Hospitals and medical centers'
         },
         'Health Clinics': {
-            'tags': 'amenity=clinic',
+            'tags': [('amenity', 'clinic')],
             'color': '#e67e22',
             'icon': 'circle',
             'description': 'Health clinics and dispensaries'
         },
         'Pharmacies': {
-            'tags': 'amenity=pharmacy',
+            'tags': [('amenity', 'pharmacy')],
             'color': '#27ae60',
             'icon': 'square',
             'description': 'Pharmacies and drug stores'
         },
         'Schools': {
-            'tags': 'amenity=school',
+            'tags': [('amenity', 'school')],
             'color': '#3498db',
             'icon': 'triangle',
             'description': 'Primary and secondary schools'
         },
         'Universities': {
-            'tags': 'amenity=university',
+            'tags': [('amenity', 'university')],
             'color': '#9b59b6',
             'icon': 'star',
             'description': 'Universities and colleges'
         },
         'Places of Worship': {
-            'tags': 'amenity=place_of_worship',
+            'tags': [('amenity', 'place_of_worship')],
             'color': '#f39c12',
             'icon': 'diamond',
             'description': 'Mosques, churches, and temples'
         },
         'Markets': {
-            'tags': 'amenity=marketplace',
+            'tags': [('amenity', 'marketplace')],
             'color': '#1abc9c',
             'icon': 'circle',
             'description': 'Markets and bazaars'
         },
         'Banks': {
-            'tags': 'amenity=bank',
+            'tags': [('amenity', 'bank')],
             'color': '#2c3e50',
             'icon': 'square',
             'description': 'Banks and financial institutions'
         },
         'Fuel Stations': {
-            'tags': 'amenity=fuel',
+            'tags': [('amenity', 'fuel')],
             'color': '#c0392b',
             'icon': 'circle',
             'description': 'Petrol/gas stations'
         },
         'Water Points': {
-            'tags': 'amenity=drinking_water|man_made=water_well|man_made=water_tower',
+            'tags': [('amenity', 'drinking_water'), ('man_made', 'water_well'), ('man_made', 'water_tower')],
             'color': '#3498db',
             'icon': 'circle',
             'description': 'Water sources and wells'
         },
         'Police Stations': {
-            'tags': 'amenity=police',
+            'tags': [('amenity', 'police')],
             'color': '#34495e',
             'icon': 'square',
             'description': 'Police stations'
         },
         'Fire Stations': {
-            'tags': 'amenity=fire_station',
+            'tags': [('amenity', 'fire_station')],
             'color': '#e74c3c',
             'icon': 'triangle',
             'description': 'Fire stations'
         },
         'Airports': {
-            'tags': 'aeroway=aerodrome',
+            'tags': [('aeroway', 'aerodrome')],
             'color': '#8e44ad',
             'icon': 'star',
             'description': 'Airports and airfields'
         },
         'Bus Stations': {
-            'tags': 'amenity=bus_station',
+            'tags': [('amenity', 'bus_station')],
             'color': '#16a085',
             'icon': 'circle',
             'description': 'Bus terminals and stations'
         },
         'Hotels': {
-            'tags': 'tourism=hotel',
+            'tags': [('tourism', 'hotel')],
             'color': '#f1c40f',
             'icon': 'square',
             'description': 'Hotels and accommodation'
         },
         'Restaurants': {
-            'tags': 'amenity=restaurant',
+            'tags': [('amenity', 'restaurant')],
             'color': '#e67e22',
             'icon': 'circle',
             'description': 'Restaurants and eateries'
         },
         'Government Buildings': {
-            'tags': 'office=government',
+            'tags': [('office', 'government')],
             'color': '#7f8c8d',
             'icon': 'square',
             'description': 'Government offices'
         },
         'Embassies': {
-            'tags': 'office=diplomatic',
+            'tags': [('office', 'diplomatic')],
             'color': '#2980b9',
             'icon': 'star',
             'description': 'Embassies and consulates'
@@ -170,40 +170,22 @@ class OSMClient(QObject):
     # Infrastructure categories
     INFRASTRUCTURE_CATEGORIES = {
         'Main Roads': {
-            'tags': 'highway=primary|highway=secondary|highway=trunk',
+            'tags': [('highway', 'primary'), ('highway', 'secondary'), ('highway', 'trunk')],
             'color': '#e74c3c',
             'geometry': 'line',
             'description': 'Primary and secondary roads'
         },
-        'All Roads': {
-            'tags': 'highway~"."',
-            'color': '#95a5a6',
-            'geometry': 'line',
-            'description': 'All road types'
-        },
         'Railways': {
-            'tags': 'railway=rail',
+            'tags': [('railway', 'rail')],
             'color': '#2c3e50',
             'geometry': 'line',
             'description': 'Railway lines'
         },
-        'Waterways': {
-            'tags': 'waterway~"."',
+        'Rivers': {
+            'tags': [('waterway', 'river')],
             'color': '#3498db',
             'geometry': 'line',
-            'description': 'Rivers, streams, canals'
-        },
-        'Buildings': {
-            'tags': 'building~"."',
-            'color': '#7f8c8d',
-            'geometry': 'polygon',
-            'description': 'All building footprints'
-        },
-        'Landuse': {
-            'tags': 'landuse~"."',
-            'color': '#27ae60',
-            'geometry': 'polygon',
-            'description': 'Land use areas'
+            'description': 'Major rivers'
         }
     }
 
@@ -218,7 +200,7 @@ class OSMClient(QObject):
         self.cache_dir = os.path.join(tempfile.gettempdir(), 'sudan_osm_cache')
         os.makedirs(self.cache_dir, exist_ok=True)
         self.current_endpoint_index = 0
-        self.timeout = 180000  # 3 minutes timeout for large queries
+        self.timeout = 120000  # 2 minutes timeout
 
     def get_categories(self):
         """Get list of POI categories."""
@@ -242,50 +224,30 @@ class OSMClient(QObject):
         """Get bounding box for a state."""
         return self.SUDAN_STATES.get(state_name, self.SUDAN_BBOX)
 
-    def _build_overpass_query(self, tags, bbox, geometry_type='node'):
+    def _build_overpass_query(self, tags_list, bbox, geometry_type='nwr'):
         """
         Build an Overpass QL query.
 
-        :param tags: Tag filter string (e.g., 'amenity=hospital')
+        :param tags_list: List of (key, value) tuples for tag filters
         :param bbox: Bounding box dict with south, west, north, east
         :param geometry_type: 'node', 'way', 'relation', or 'nwr' (all)
         :returns: Overpass QL query string
         """
         bbox_str = f"{bbox['south']},{bbox['west']},{bbox['north']},{bbox['east']}"
 
-        # Handle multiple tags with OR (|)
-        if '|' in tags:
-            tag_parts = tags.split('|')
-            tag_queries = []
-            for tag in tag_parts:
-                if '~' in tag:
-                    # Regex match
-                    key, value = tag.split('~')
-                    tag_queries.append(f'{geometry_type}["{key}"~"{value}"]({bbox_str});')
-                elif '=' in tag:
-                    key, value = tag.split('=')
-                    tag_queries.append(f'{geometry_type}["{key}"="{value}"]({bbox_str});')
-            query_body = '\n'.join(tag_queries)
-        else:
-            if '~' in tags:
-                # Regex match
-                key, value = tags.split('~')
-                query_body = f'{geometry_type}["{key}"~"{value}"]({bbox_str});'
-            elif '=' in tags:
-                key, value = tags.split('=')
-                query_body = f'{geometry_type}["{key}"="{value}"]({bbox_str});'
-            else:
-                query_body = f'{geometry_type}["{tags}"]({bbox_str});'
+        # Build tag queries
+        tag_queries = []
+        for key, value in tags_list:
+            tag_queries.append(f'  {geometry_type}["{key}"="{value}"]({bbox_str});')
 
-        query = f"""
-[out:json][timeout:180];
+        query_body = '\n'.join(tag_queries)
+
+        # Simple query format that works reliably
+        query = f"""[out:json][timeout:90];
 (
 {query_body}
 );
-out center body;
->;
-out skel qt;
-"""
+out center;"""
         return query
 
     def _execute_query(self, query):
@@ -303,22 +265,39 @@ out skel qt;
             QgsMessageLog.logMessage(f"OSM: Using endpoint {endpoint}", "Sudan Data Loader", Qgis.Info)
 
             try:
+                # URL-encode the query data properly
+                encoded_query = quote(query, safe='')
+                post_data = f"data={encoded_query}"
+
                 request = QNetworkRequest(QUrl(endpoint))
                 request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/x-www-form-urlencoded')
 
                 blocking = QgsBlockingNetworkRequest()
-                blocking.setAuthCfg('')  # No auth needed
 
-                # Encode query data
-                post_data = f"data={query}".encode('utf-8')
+                # Convert to QByteArray
+                data_bytes = QByteArray(post_data.encode('utf-8'))
 
-                error = blocking.post(request, post_data)
+                error = blocking.post(request, data_bytes)
 
                 if error == QgsBlockingNetworkRequest.NoError:
                     content = bytes(blocking.reply().content())
                     if content:
-                        self.current_endpoint_index = endpoint_index  # Remember working endpoint
-                        return json.loads(content)
+                        try:
+                            result = json.loads(content.decode('utf-8'))
+                            if 'elements' in result:
+                                self.current_endpoint_index = endpoint_index
+                                return result
+                            elif 'remark' in result:
+                                # Overpass error message
+                                QgsMessageLog.logMessage(
+                                    f"OSM: Overpass error: {result.get('remark', 'Unknown error')}",
+                                    "Sudan Data Loader", Qgis.Warning
+                                )
+                        except json.JSONDecodeError as e:
+                            QgsMessageLog.logMessage(
+                                f"OSM: JSON decode error: {str(e)}",
+                                "Sudan Data Loader", Qgis.Warning
+                            )
                 else:
                     QgsMessageLog.logMessage(
                         f"OSM: Endpoint {endpoint} failed: {blocking.errorMessage()}",
@@ -339,7 +318,7 @@ out skel qt;
         Query POIs for a category in Sudan.
 
         :param category: POI category name
-        :param state: Optional state name to limit query
+        :param state: Optional state name to limit query (RECOMMENDED)
         :param custom_bbox: Optional custom bounding box
         :returns: GeoJSON dict or None
         """
@@ -350,12 +329,14 @@ out skel qt;
         cat_info = self.POI_CATEGORIES[category]
         tags = cat_info['tags']
 
-        # Determine bounding box
+        # Determine bounding box - prefer state for better performance
         if custom_bbox:
             bbox = custom_bbox
         elif state:
             bbox = self.get_bbox_for_state(state)
         else:
+            # Warn about large query
+            self.query_progress.emit("Warning: Querying all of Sudan may be slow...")
             bbox = self.SUDAN_BBOX
 
         # Build and execute query
@@ -364,7 +345,7 @@ out skel qt;
 
         result = self._execute_query(query)
         if not result:
-            self.query_error.emit(f"Failed to fetch {category} data")
+            self.query_error.emit(f"Failed to fetch {category} data. Try selecting a specific state.")
             return None
 
         # Convert to GeoJSON
@@ -377,7 +358,7 @@ out skel qt;
         Query infrastructure for a category in Sudan.
 
         :param category: Infrastructure category name
-        :param state: Optional state name to limit query
+        :param state: Optional state name to limit query (RECOMMENDED)
         :param custom_bbox: Optional custom bounding box
         :returns: GeoJSON dict or None
         """
@@ -403,6 +384,7 @@ out skel qt;
         elif state:
             bbox = self.get_bbox_for_state(state)
         else:
+            self.query_progress.emit("Warning: Querying all of Sudan may be slow...")
             bbox = self.SUDAN_BBOX
 
         # Build and execute query
@@ -411,7 +393,7 @@ out skel qt;
 
         result = self._execute_query(query)
         if not result:
-            self.query_error.emit(f"Failed to fetch {category} data")
+            self.query_error.emit(f"Failed to fetch {category} data. Try selecting a specific state.")
             return None
 
         # Convert to GeoJSON
@@ -552,7 +534,7 @@ out skel qt;
         tags = element.get('tags', {})
         for key, value in tags.items():
             # Clean key names for GIS compatibility
-            clean_key = key.replace(':', '_')
+            clean_key = key.replace(':', '_').replace(' ', '_')
             props[clean_key] = value
 
         # Add common name field
