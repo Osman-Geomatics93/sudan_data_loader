@@ -17,6 +17,17 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QRectF, QSizeF
 from qgis.PyQt.QtGui import QFont
 
+# Try to import QgsLegendStyle, handle if not available
+try:
+    from qgis.core import QgsLegendStyle
+except ImportError:
+    # Create a simple fallback for older QGIS versions
+    class QgsLegendStyle:
+        Title = 0
+        Group = 1
+        Subgroup = 2
+        SymbolLabel = 3
+
 
 class PublicationExporter:
     """Exports maps and data for publication."""
@@ -471,15 +482,3 @@ class PublicationExporter:
             text = text.replace(char, escaped)
 
         return text
-
-
-# Try to import QgsLegendStyle, handle if not available
-try:
-    from qgis.core import QgsLegendStyle
-except ImportError:
-    # Create a simple fallback
-    class QgsLegendStyle:
-        Title = 0
-        Group = 1
-        Subgroup = 2
-        SymbolLabel = 3
